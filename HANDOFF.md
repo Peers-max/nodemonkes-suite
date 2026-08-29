@@ -26,8 +26,8 @@
 | 原独立仓库 | 对应功能模块 | 迁移与整合实现 |
 | :--- | :--- | :--- |
 | `supercrypto1984/nodemonkes-browser` | **🔍 1. Explorer (主浏览器)** | 10,000 数据多维筛选、网格 (Grid) / 表格 (Table) 双视图秒切、稀有度彩色发光胶囊、Script PubKey 一键复制、详情弹窗。 |
-| `supercrypto1984/nodemonkes-gif` | **🎬 2. GIF Studio (动态工坊)** | 纯前端 HTML5 Canvas 24 帧正弦插值点头动效、自动匹配肤色底色、透明背景、Web Worker 多线程 GIF 渲染导出。 |
-| `supercrypto1984/diynm` | **🎨 3. DIY Studio (捏猴工坊)** | 原生 Canvas 图层拼装（Body, Head, Eyes, Earring, Background）、一键随机 (🎲 Randomize)、重置与 560px 高清无损 PNG 导出。 |
+| `supercrypto1984/nodemonkes-gif` | **🎬 2. GIF Studio (动态工坊)** | 100% 还原原版 Upper/Lower 分层 36 帧正弦插值独立点头与形变动效，支持普通款与 Santa 圣诞款双模式切换，自动匹配肤色底色、透明背景、Web Worker 多线程 GIF 渲染导出。 |
+| `supercrypto1984/diynm` | **🎨 3. DIY Studio (捏猴工坊)** | 100% 继承官方原版全部 5 大系列（Normal、Dog、Block、Rabbit、Peer）全部真实 R2 资产图层，支持 Body, Earring, Eyes, Head 自由组合、一键随机 (🎲 随机搭配)、自选底色与 600px 高清无损 PNG 导出。 |
 | `supercrypto1984/santa-nodemonkes` | **🎅 4. Santa Monkes (圣诞限定)** | 10,000 圣诞帽全集画廊、自定义节日色盘、多分辨率（280px / 560px / 1120px 4K）头像一键生成与下载。 |
 
 ---
@@ -56,12 +56,12 @@ nodemonkes-suite/
 ├── src/
 │   ├── components/
 │   │   ├── diy/
-│   │   │   └── DiyStudio.tsx   # DIY 捏猴换装画布与图层配置
+│   │   │   └── DiyStudio.tsx   # 原版 5 大系列真实 R2 图层换装与画布导出
 │   │   ├── explorer/
 │   │   │   ├── MonkeDetailModal.tsx # 节点猴大图、全属性、色板与链上公钥详情弹窗
 │   │   │   └── MonkesExplorer.tsx   # 主画廊/数据表、筛选器、排序与分页组件
 │   │   ├── gif/
-│   │   │   └── GifStudio.tsx   # 动态 GIF 实时画布预览、调色盘与导出控制器
+│   │   │   └── GifStudio.tsx   # 原版 Upper/Lower 36 帧动画、调色盘与导出控制器
 │   │   ├── layout/
 │   │   │   ├── Navbar.tsx      # 顶部响应式导航栏、Tab 切换与全站快捷搜索
 │   │   │   └── Footer.tsx      # 底部版权与 Web3 外部生态链接
@@ -75,7 +75,7 @@ nodemonkes-suite/
 │   ├── utils/
 │   │   ├── api.ts              # 元数据拉取 (带内存缓存) 与色板提取
 │   │   ├── constants.ts        # 33 种 Body 肤色、动画参数、CDN 地址与预置色盘
-│   │   └── gifEngine.ts        # Canvas 帧插值计算与 GIF 生成器核心
+│   │   └── gifEngine.ts        # Canvas Upper/Lower 帧插值计算与 GIF 生成器核心
 │   ├── App.tsx                 # 根组件：全局状态管理、URL Query 同步与模块路由
 │   ├── index.css               # Tailwind 注入、毛玻璃面板与像素渲染配置
 │   └── main.tsx                # React 18 入口挂载
@@ -105,26 +105,31 @@ nodemonkes-suite/
 
 ### 4.2 🎬 GIF Studio（动态 GIF 工坊）
 - **文件路径**：`src/components/gif/GifStudio.tsx` + `src/utils/gifEngine.ts`
-- **核心逻辑**：
-  - **24 帧正弦形变算法**：使用 `Math.sin(t) * rotationRange` 与 `1 - Math.abs(Math.sin(t)) * squashStrength` 模拟经典点头与微挤压。
-  - **背景模式**：
-    - `Transparent`：输出透明通道 GIF；
-    - `Auto`：自动读取该 Monke 的 `Body` 属性在 `BODY_COLORS` 映射表中的官方色值进行铺底；
-    - `Custom`：支持 8 种 Web3 预置色及原生 HTML5 取色器。
-  - **导出优化**：调用 Web Worker 分片渲染，导出过程带有百分比进度条提示。
+- **真实分层动效原理**：
+  - **Upper/Lower 分离资源**：从原版 R2 读取预切片的 `upperbody/${id}.png` 和 `lowerbody/${id}.png`；
+  - **36 帧正弦插值算法**：
+    - `lowerImg` 进行微挤压形变（`scaleY = 1 - smoothCompression`, `scaleX = 1 + smoothCompression * 0.2`）；
+    - `upperImg` 围绕动态轴心（抬起时以 `raisePivotX = 3/7 * size` 旋转，下压时以 `insertionAngle` 下沉插入）。
+  - **双模式支持**：支持 Normal 原版与 Santa 圣诞版一键切换；
+  - **背景模式**：`Transparent (透明)`、`Auto (自动匹配官方皮肤底色)`、`Custom (自定义色盘)`。
 
-### 4.3 🎨 DIY Studio（节点猴捏猴换装）
+### 4.3 🎨 DIY Studio（节点猴 5 大系列原版换装）
 - **文件路径**：`src/components/diy/DiyStudio.tsx`
-- **核心逻辑**：
-  - 基于 28x28 像素标准网格，按 10 倍无损放大（280x280 Canvas）进行层叠渲染：
-    `Background → Body Base → Eyes/Visors → Headwear → Earrings`。
-  - **🎲 Randomize**：从内置预设库中随机抽取组合，快速激发创作灵感。
-  - **无损高清导出**：在导出时创建独立的 560x560 离屏 Canvas，`imageSmoothingEnabled = false` 导出高清 PNG 头像。
+- **真实 R2 资产架构**：
+  - 支持原版 5 大系列：
+    1. `Normal`：`https://pub-2f0821e8464b4c139f681d763393f4ee.r2.dev`
+    2. `Dog`：`https://pub-4d8b3f7049bb4025a6642c75eeb71c46.r2.dev`
+    3. `Block`：`https://pub-d7a7a960d42949efb84bea391aa90d4c.r2.dev`
+    4. `Rabbit`：`https://pub-e50795db8d0d41dd942f04a8b290f95f.r2.dev`
+    5. `Peer`：`https://pub-026e5fdeaab545cc9c5aa34738735770.r2.dev`
+  - 自动从 `metadata.json` 提取所有官方组件清单（Body, Earring, Eyes, Head）；
+  - 图层按 `Background → Body → Earring → Eyes → Head` 严格次序合成；
+  - **🎲 随机搭配 (Randomize)** 与 **💾 保存头像 (Save Avatar)**（600px 高清无损 PNG 导出）。
 
 ### 4.4 🎅 Santa Monkes（圣诞限定款画廊）
 - **文件路径**：`src/components/santa/SantaStudio.tsx`
 - **核心逻辑**：
-  - 访问 `supercrypto1984/santa-nodemonkes` 官方图源（10,000 张圣诞帽合成图）。
+  - 访问官方 10,000 张圣诞帽合成图库；
   - 支持更换背景色、切换 `280px / 560px / 1120px` 三档分辨率并导出。
 
 ---
@@ -132,40 +137,29 @@ nodemonkes-suite/
 ## 5. 数据流、静态资源与 CDN 策略
 
 1. **元数据（Metadata）**：
-   - 数据源：`https://pub-ce8a03b190984a3d99332e13b7d5e3cb.r2.dev/transformed_metadata.json`
-   - 首次加载后自动存入 `cachedMonkes` 内存变量，全应用跨 Tab 切换不产生二次网络请求。
-2. **图片资源（CDN）**：
-   - 节点猴原图：`https://raw.githubusercontent.com/supercrypto1984/nodemonkes-gallery/main/images/{id}.png`
-   - 圣诞款原图：`https://raw.githubusercontent.com/supercrypto1984/santa-nodemonkes/main/public/assets/merged/{id}.png`
-   - 所有图片均开启 `crossOrigin = "anonymous"`，支持跨域 Canvas 像素读取与色板提取。
-3. **URL 状态同步（Query-Driven Routing）**：
-   - 格式：`https://domain/?tab=gif&id=209`
-   - 通过 `window.history.pushState` 实时同步，刷新或分享链接可直接定位到特定模块与特定 Monke。
+   - 数据源：`https://pub-ce8a03b190984a3d99332e13b7d5e3cb.r2.dev/transformed_metadata.json` 与 `metadata.json`
+   - 首次加载后自动存入内存缓存，全应用跨 Tab 切换不产生二次网络请求。
+2. **GIF 分层图片源**：
+   - 普通款：`https://pub-b4dd93b94d3b4b3a93fa599c57a78615.r2.dev/upperbody/{id}.png` 及 `lowerbody/{id}.png`
+   - 圣诞款：`https://pub-048d93bb0a5a448783aecb63c784ccbf.r2.dev/santaupperbody/{id}.png` 及 `santalowerbody/{id}.png`
+3. **DIY 5 大系列图层源**：
+   - 统一走 Cloudflare R2 高速全球边缘节点。
 
 ---
 
 ## 6. 本地开发与构建调试
 
-### 6.1 前置环境
-- Node.js >= 18.0.0 (推荐 Node v20 或 v24)
-- npm >= 9.0.0
-
-### 6.2 常用命令
 ```bash
-# 1. 克隆代码
-git clone https://github.com/Peers-max/nodemonkes-suite.git
-cd nodemonkes-suite
-
-# 2. 安装依赖
+# 1. 安装依赖
 npm install
 
-# 3. 启动本地开发服务器 (默认端口 3000)
+# 2. 启动本地开发服务器
 npm run dev
 
-# 4. TypeScript 类型检查与生产编译
+# 3. 生产编译打包 (TypeScript 严格检查)
 npm run build
 
-# 5. 本地预览生产构建产物
+# 4. 本地预览生产构建产物
 npm run preview
 ```
 
@@ -173,67 +167,6 @@ npm run preview
 
 ## 7. CI/CD 自动化构建与 GitHub Pages 部署
 
-本项目已在 `.github/workflows/deploy.yml` 中配置全自动流水线：
-
-```yaml
-name: Deploy to GitHub Pages
-
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-      - run: npm ci
-      - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: './dist'
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - uses: actions/deploy-pages@v4
-```
-
-- **部署触发**：向 `main` 分支执行 `git push` 时自动触发。
-- **自定义域名绑定**：如需绑定独立域名，在仓库根目录添加 `CNAME` 文件（例如写入 `nodemonke.xyz`），并在域名 DNS 设置 CNAME 指向 `peers-max.github.io` 即可。
-
----
-
-## 8. 常见问题排查与日常维护 (Troubleshooting)
-
-### Q1: 图片加载出现 CORS 跨域错误？
-- **原因**：通过 Canvas 提取像素色板或导出 GIF 时，如果图片服务器没有配置 `Access-Control-Allow-Origin: *` 会导致 Canvas 污染（Tainted Canvas）。
-- **解决**：所有图片元素必须设置 `crossOrigin = "anonymous"`（代码中已统一封装在 `api.ts` 与 `gifEngine.ts` 中）。
-
-### Q2: 导出 GIF 时控制台提示 `workerScript not found`？
-- **原因**：`gif.worker.js` 未正确放置在 `public/` 静态资源目录。
-- **解决**：确保 `public/gif.worker.js` 文件存在，构建后会自动复制到 `dist/gif.worker.js`。
-
-### Q3: 属性百分比显示 NaN？
-- **原因**：部分 Monke 属性值为 None 或缺少 `BodyCount` 字段。
-- **解决**：`Badge.tsx` 中已做了 `percentage !== undefined` 的保护性断言，确保缺失数据时降级为普通标签显示。
-
----
-
-## 9. 未来演进建议 (Roadmap)
-
-1. **Web3 钱包连接与持仓筛选**：
-   - 集成 Unisat / Xverse 比特币钱包连接；
-   - 自动扫描用户钱包并一键筛选出“我拥有的 NodeMonkes”。
-2. **多资产对比模式 (Compare Mode)**：
-   - 允许用户勾选 2~4 个 Monke 进行并排稀有度、属性与外观对比。
-3. **PWA 离线支持**：
-   - 增加 Service Worker 缓存，支持无网环境下离线制作 GIF 与 DIY 头像。
+本项目在 `.github/workflows/deploy.yml` 中配置了 GitHub Actions 自动化工作流：
+- **部署触发**：向 `main` 分支执行 `git push` 时自动触发构建并发布到 GitHub Pages。
+- **线上地址**：`https://peers-max.github.io/nodemonkes-suite/`
