@@ -1,66 +1,224 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Paintbrush, Download, Shuffle, RotateCcw, Copy, Check, Layers, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { 
+  Paintbrush, 
+  Download, 
+  Shuffle, 
+  RotateCcw, 
+  Palette, 
+  Sparkles, 
+  Check, 
+  RefreshCw,
+  Layers
+} from 'lucide-react';
 import { clsx } from 'clsx';
 import { BODY_COLORS, PRESET_COLORS } from '../../utils/constants';
 
 interface DiyStudioProps {
-  onToast: (title: string, desc?: string, type?: 'success' | 'info') => void;
+  onToast: (title: string, desc?: string, type?: 'success' | 'info' | 'error') => void;
 }
 
-// Built-in Modular Traits Options
-const DIY_BODIES = [
-  { id: 'gold', name: 'Gold', color: '#FFAA01' },
-  { id: 'alien', name: 'Alien', color: '#04CFE7' },
-  { id: 'pepe', name: 'Pepe', color: '#127602' },
-  { id: 'albino', name: 'Albino', color: '#BDADAD' },
-  { id: 'pink', name: 'Pink', color: '#E944CE' },
-  { id: 'dark', name: 'Dark', color: '#482510' },
-  { id: 'deathbot', name: 'Deathbot', color: '#282831' },
-  { id: 'zombie', name: 'Zombie', color: '#104119' },
-  { id: 'dos', name: 'DOS', color: '#0002A5' },
-  { id: 'white', name: 'White', color: '#C7BCB6' },
-];
+type SeriesType = 'normal' | 'dog' | 'block' | 'rabbit' | 'peer';
+type CategoryType = 'Body' | 'Earring' | 'Eyes' | 'Head';
 
-const DIY_HEADS = [
-  { id: 'none', name: 'None (Clean)' },
-  { id: 'crown', name: 'Golden Crown' },
-  { id: 'terminal', name: 'Terminal Cap' },
-  { id: 'bandana', name: 'Pirate Bandana' },
-  { id: 'halo', name: 'Angel Halo' },
-  { id: 'tophat', name: 'Gentleman Top Hat' },
-  { id: 'santa', name: 'Santa Festive Hat' },
-  { id: 'ninja', name: 'Ninja Headband' },
-];
+interface TraitPart {
+  value: string;
+  url: string;
+}
 
-const DIY_EYES = [
-  { id: 'normal', name: 'Classic Pixel Eyes' },
-  { id: 'deathbot', name: 'Red Laser Deathbot' },
-  { id: 'vr', name: 'Cyber VR Goggles' },
-  { id: '3d', name: 'Retro 3D Glasses' },
-  { id: 'sunglasses', name: 'Black Shades' },
-  { id: 'cyclops', name: 'Cyclops Visor' },
-];
+const METADATA_URL = 'https://pub-ce8a03b190984a3d99332e13b7d5e3cb.r2.dev/metadata.json';
 
-const DIY_EARRINGS = [
-  { id: 'none', name: 'None' },
-  { id: 'gold', name: 'Gold Hoop' },
-  { id: 'silver', name: 'Silver Stud' },
-  { id: 'cross', name: 'Holy Cross' },
-  { id: 'diamond', name: 'Diamond Sparkle' },
+const BASE_URLS: Record<SeriesType, string> = {
+  normal: 'https://pub-2f0821e8464b4c139f681d763393f4ee.r2.dev',
+  dog: 'https://pub-4d8b3f7049bb4025a6642c75eeb71c46.r2.dev',
+  block: 'https://pub-d7a7a960d42949efb84bea391aa90d4c.r2.dev',
+  rabbit: 'https://pub-e50795db8d0d41dd942f04a8b290f95f.r2.dev',
+  peer: 'https://pub-026e5fdeaab545cc9c5aa34738735770.r2.dev',
+};
+
+const CATEGORIES: CategoryType[] = ['Body', 'Earring', 'Eyes', 'Head'];
+const SPECIAL_SERIES = ['Dog', 'Peer', 'Rabbit', 'Block'];
+
+const SERIES_COMPONENTS: Record<SeriesType, CategoryType[]> = {
+  normal: ['Body', 'Earring', 'Eyes', 'Head'],
+  dog: ['Body', 'Earring', 'Eyes'],
+  block: ['Body', 'Earring', 'Eyes'],
+  rabbit: ['Body', 'Earring', 'Eyes'],
+  peer: ['Body', 'Eyes'],
+};
+
+const SERIES_NAMES: { id: SeriesType; label: string }[] = [
+  { id: 'normal', label: 'Normal' },
+  { id: 'dog', label: 'Dog' },
+  { id: 'block', label: 'Block' },
+  { id: 'rabbit', label: 'Rabbit' },
+  { id: 'peer', label: 'Peer' },
 ];
 
 export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
-  const [selectedBody, setSelectedBody] = useState('gold');
-  const [selectedHead, setSelectedHead] = useState('crown');
-  const [selectedEyes, setSelectedEyes] = useState('deathbot');
-  const [selectedEarring, setSelectedEarring] = useState('gold');
-  const [bgColor, setBgColor] = useState('#0A0D14');
-  const [copied, setCopied] = useState(false);
+  const [activeSeries, setActiveSeries] = useState<SeriesType>('normal');
+  const [activeCategory, setActiveCategory] = useState<CategoryType>('Body');
+  const [selectedParts, setSelectedParts] = useState<Record<CategoryType, string>>({
+    Body: '',
+    Earring: '',
+    Eyes: '',
+    Head: '',
+  });
+
+  const [bgMode, setBgMode] = useState<'transparent' | 'orange' | 'auto' | 'custom'>('orange');
+  const [customBgColor, setCustomBgColor] = useState('#F97316');
+  const [components, setComponents] = useState<Record<SeriesType, Record<CategoryType, TraitPart[]>>>({
+    normal: { Body: [], Earring: [], Eyes: [], Head: [] },
+    dog: { Body: [], Earring: [], Eyes: [], Head: [] },
+    block: { Body: [], Earring: [], Eyes: [], Head: [] },
+    rabbit: { Body: [], Earring: [], Eyes: [], Head: [] },
+    peer: { Body: [], Earring: [], Eyes: [], Head: [] },
+  });
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imageCache = useRef<Map<string, HTMLImageElement>>(new Map());
 
-  // Render Canvas Composite
+  // Helper to load image with cache
+  const loadCachedImage = useCallback((url: string): Promise<HTMLImageElement> => {
+    if (imageCache.current.has(url)) {
+      return Promise.resolve(imageCache.current.get(url)!);
+    }
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        imageCache.current.set(url, img);
+        resolve(img);
+      };
+      img.onerror = () => reject(new Error(`Failed to load ${url}`));
+      img.src = url;
+    });
+  }, []);
+
+  // Fetch Metadata and Construct Trait Components List
   useEffect(() => {
+    let mounted = true;
+
+    const initMetadata = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(METADATA_URL);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const data = await res.json();
+        const items: any[] = Array.isArray(data) ? data : [data];
+
+        const uniqueComponents: Record<CategoryType, Set<string>> = {
+          Body: new Set(),
+          Earring: new Set(),
+          Eyes: new Set(),
+          Head: new Set(),
+        };
+
+        items.forEach((item) => {
+          if (item.attributes) {
+            CATEGORIES.forEach((cat) => {
+              const val = item.attributes[cat];
+              if (val && val !== 'None') {
+                if (!(cat === 'Head' && SPECIAL_SERIES.includes(val))) {
+                  uniqueComponents[cat].add(val);
+                }
+              }
+            });
+          }
+        });
+
+        const newComponents: Record<SeriesType, Record<CategoryType, TraitPart[]>> = {
+          normal: { Body: [], Earring: [], Eyes: [], Head: [] },
+          dog: { Body: [], Earring: [], Eyes: [], Head: [] },
+          block: { Body: [], Earring: [], Eyes: [], Head: [] },
+          rabbit: { Body: [], Earring: [], Eyes: [], Head: [] },
+          peer: { Body: [], Earring: [], Eyes: [], Head: [] },
+        };
+
+        (Object.keys(BASE_URLS) as SeriesType[]).forEach((series) => {
+          SERIES_COMPONENTS[series].forEach((cat) => {
+            const parts: TraitPart[] = Array.from(uniqueComponents[cat]).map((val) => ({
+              value: val,
+              url: `${BASE_URLS[series]}/${cat.toLowerCase()}/${val}.png`,
+            }));
+
+            // Add 'None' option
+            if (['Earring', 'Eyes'].includes(cat) || (cat === 'Head' && series === 'normal')) {
+              parts.unshift({ value: 'None', url: 'none' });
+            }
+
+            newComponents[series][cat] = parts;
+          });
+        });
+
+        if (!mounted) return;
+        setComponents(newComponents);
+
+        // Initial randomize
+        const initialSelection: Record<CategoryType, string> = {
+          Body: '',
+          Earring: '',
+          Eyes: '',
+          Head: '',
+        };
+
+        const normalBodies = newComponents.normal.Body.filter((p) => p.url !== 'none');
+        if (normalBodies.length > 0) {
+          const randomBody = normalBodies[Math.floor(Math.random() * normalBodies.length)];
+          initialSelection.Body = randomBody.url;
+        }
+
+        const normalHeads = newComponents.normal.Head.filter((p) => p.url !== 'none');
+        if (normalHeads.length > 0) {
+          const randomHead = normalHeads[Math.floor(Math.random() * normalHeads.length)];
+          initialSelection.Head = randomHead.url;
+        }
+
+        setSelectedParts(initialSelection);
+        setLoading(false);
+      } catch (err: any) {
+        console.error('Failed to init DIY metadata:', err);
+        if (mounted) setLoading(false);
+      }
+    };
+
+    initMetadata();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Compute effective background color
+  const getSelectedBodyName = (): string | null => {
+    const bodyUrl = selectedParts.Body;
+    if (!bodyUrl || bodyUrl === 'none') return null;
+    const parts = bodyUrl.split('/');
+    const filename = parts[parts.length - 1];
+    return filename.replace('.png', '').toLowerCase();
+  };
+
+  const getAutoBgColor = (): string => {
+    const bodyName = getSelectedBodyName();
+    if (bodyName && BODY_COLORS[bodyName]) {
+      return BODY_COLORS[bodyName];
+    }
+    return '#F97316';
+  };
+
+  const effectiveBg =
+    bgMode === 'transparent'
+      ? null
+      : bgMode === 'orange'
+      ? '#F97316'
+      : bgMode === 'auto'
+      ? getAutoBgColor()
+      : customBgColor;
+
+  // Composite Canvas Layers
+  const renderCanvas = useCallback(async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -69,333 +227,399 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // 1. Background
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // 2. Base Monke Silhouette with selected color
-    const bodyColor = BODY_COLORS[selectedBody] || '#FFAA01';
-    
-    // Draw stylized pixel monke on canvas (28x28 grid scaled up to 280x280)
-    const pixelSize = 10;
-    ctx.imageSmoothingEnabled = false;
-
-    // Head/Body Shape (Classic 28x28 Monke Template)
-    ctx.fillStyle = bodyColor;
-    
-    // Body Block
-    ctx.fillRect(6 * pixelSize, 8 * pixelSize, 16 * pixelSize, 16 * pixelSize);
-    ctx.fillRect(4 * pixelSize, 11 * pixelSize, 20 * pixelSize, 10 * pixelSize);
-    
-    // Ears
-    ctx.fillRect(3 * pixelSize, 12 * pixelSize, 2 * pixelSize, 4 * pixelSize);
-    ctx.fillRect(23 * pixelSize, 12 * pixelSize, 2 * pixelSize, 4 * pixelSize);
-
-    // Snout / Face Accent
-    ctx.fillStyle = 'rgba(0,0,0,0.15)';
-    ctx.fillRect(8 * pixelSize, 14 * pixelSize, 12 * pixelSize, 8 * pixelSize);
-
-    // 3. Eyes Layer
-    if (selectedEyes === 'deathbot') {
-      ctx.fillStyle = '#FF0033'; // Bright Red Laser Eyes
-      ctx.fillRect(9 * pixelSize, 12 * pixelSize, 4 * pixelSize, 2 * pixelSize);
-      ctx.fillRect(15 * pixelSize, 12 * pixelSize, 4 * pixelSize, 2 * pixelSize);
-    } else if (selectedEyes === 'vr') {
-      ctx.fillStyle = '#00F0FF'; // Cyberpunk Cyan Visor
-      ctx.fillRect(8 * pixelSize, 11 * pixelSize, 12 * pixelSize, 4 * pixelSize);
-      ctx.fillStyle = '#FF0055';
-      ctx.fillRect(10 * pixelSize, 12 * pixelSize, 2 * pixelSize, 2 * pixelSize);
-      ctx.fillRect(16 * pixelSize, 12 * pixelSize, 2 * pixelSize, 2 * pixelSize);
-    } else if (selectedEyes === '3d') {
-      ctx.fillStyle = '#FF0000';
-      ctx.fillRect(9 * pixelSize, 12 * pixelSize, 3 * pixelSize, 2 * pixelSize);
-      ctx.fillStyle = '#00FFFF';
-      ctx.fillRect(16 * pixelSize, 12 * pixelSize, 3 * pixelSize, 2 * pixelSize);
-    } else if (selectedEyes === 'sunglasses') {
-      ctx.fillStyle = '#050505';
-      ctx.fillRect(8 * pixelSize, 11 * pixelSize, 12 * pixelSize, 3 * pixelSize);
-      ctx.fillRect(10 * pixelSize, 14 * pixelSize, 3 * pixelSize, 1 * pixelSize);
-      ctx.fillRect(15 * pixelSize, 14 * pixelSize, 3 * pixelSize, 1 * pixelSize);
-    } else {
-      // Classic pixel eyes
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(10 * pixelSize, 12 * pixelSize, 2 * pixelSize, 2 * pixelSize);
-      ctx.fillRect(16 * pixelSize, 12 * pixelSize, 2 * pixelSize, 2 * pixelSize);
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(10 * pixelSize, 12 * pixelSize, 1 * pixelSize, 1 * pixelSize);
-      ctx.fillRect(16 * pixelSize, 12 * pixelSize, 1 * pixelSize, 1 * pixelSize);
+    if (effectiveBg) {
+      ctx.fillStyle = effectiveBg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-    // 4. Head Wear Layer
-    if (selectedHead === 'crown') {
-      ctx.fillStyle = '#FFD700'; // Gold Crown
-      ctx.fillRect(8 * pixelSize, 4 * pixelSize, 12 * pixelSize, 4 * pixelSize);
-      ctx.clearRect(10 * pixelSize, 4 * pixelSize, 2 * pixelSize, 2 * pixelSize);
-      ctx.clearRect(16 * pixelSize, 4 * pixelSize, 2 * pixelSize, 2 * pixelSize);
-      ctx.fillStyle = '#FF0000'; // Ruby Gem in crown
-      ctx.fillRect(13 * pixelSize, 6 * pixelSize, 2 * pixelSize, 2 * pixelSize);
-    } else if (selectedHead === 'terminal') {
-      ctx.fillStyle = '#111111'; // Black Terminal Cap
-      ctx.fillRect(6 * pixelSize, 6 * pixelSize, 16 * pixelSize, 3 * pixelSize);
-      ctx.fillRect(4 * pixelSize, 8 * pixelSize, 20 * pixelSize, 2 * pixelSize);
-      ctx.fillStyle = '#00FF66'; // Prompt >_
-      ctx.fillRect(8 * pixelSize, 7 * pixelSize, 2 * pixelSize, 1 * pixelSize);
-    } else if (selectedHead === 'santa') {
-      ctx.fillStyle = '#D32F2F'; // Santa Red Hat
-      ctx.fillRect(7 * pixelSize, 4 * pixelSize, 14 * pixelSize, 4 * pixelSize);
-      ctx.fillRect(17 * pixelSize, 2 * pixelSize, 4 * pixelSize, 3 * pixelSize);
-      ctx.fillStyle = '#FFFFFF'; // White Fur Trim & Ball
-      ctx.fillRect(6 * pixelSize, 7 * pixelSize, 16 * pixelSize, 2 * pixelSize);
-      ctx.fillRect(20 * pixelSize, 2 * pixelSize, 3 * pixelSize, 3 * pixelSize);
-    } else if (selectedHead === 'bandana') {
-      ctx.fillStyle = '#9C27B0';
-      ctx.fillRect(6 * pixelSize, 7 * pixelSize, 16 * pixelSize, 3 * pixelSize);
-    } else if (selectedHead === 'halo') {
-      ctx.fillStyle = '#FFEB3B';
-      ctx.fillRect(8 * pixelSize, 2 * pixelSize, 12 * pixelSize, 2 * pixelSize);
+    // 2. Layer Order: Body -> Earring -> Eyes -> Head
+    const layersToDraw = ['Body', 'Earring', 'Eyes', 'Head'] as CategoryType[];
+
+    for (const cat of layersToDraw) {
+      const url = selectedParts[cat];
+      if (url && url !== 'none') {
+        try {
+          const img = await loadCachedImage(url);
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        } catch (e) {
+          // Ignore failed layer
+        }
+      }
+    }
+  }, [effectiveBg, selectedParts, loadCachedImage]);
+
+  useEffect(() => {
+    renderCanvas();
+  }, [renderCanvas]);
+
+  // Select Trait Part
+  const handleSelectPart = (category: CategoryType, url: string) => {
+    setSelectedParts((prev) => ({
+      ...prev,
+      [category]: url,
+    }));
+  };
+
+  // Switch Series
+  const handleSeriesChange = (series: SeriesType) => {
+    setActiveSeries(series);
+    if (!SERIES_COMPONENTS[series].includes(activeCategory)) {
+      setActiveCategory('Body');
     }
 
-    // 5. Earring Layer
-    if (selectedEarring === 'gold') {
-      ctx.fillStyle = '#FFD700';
-      ctx.fillRect(3 * pixelSize, 15 * pixelSize, 2 * pixelSize, 2 * pixelSize);
-    } else if (selectedEarring === 'silver') {
-      ctx.fillStyle = '#E0E0E0';
-      ctx.fillRect(3 * pixelSize, 15 * pixelSize, 2 * pixelSize, 2 * pixelSize);
-    } else if (selectedEarring === 'cross') {
-      ctx.fillStyle = '#FFD700';
-      ctx.fillRect(3 * pixelSize, 14 * pixelSize, 2 * pixelSize, 4 * pixelSize);
-      ctx.fillRect(2 * pixelSize, 15 * pixelSize, 4 * pixelSize, 1 * pixelSize);
-    }
+    // Reset non-supported parts for this series
+    setSelectedParts({
+      Body: '',
+      Earring: '',
+      Eyes: '',
+      Head: '',
+    });
+  };
 
-  }, [selectedBody, selectedHead, selectedEyes, selectedEarring, bgColor]);
-
+  // Randomize Trait Combination
   const handleRandomize = () => {
-    const randomBody = DIY_BODIES[Math.floor(Math.random() * DIY_BODIES.length)].id;
-    const randomHead = DIY_HEADS[Math.floor(Math.random() * DIY_HEADS.length)].id;
-    const randomEyes = DIY_EYES[Math.floor(Math.random() * DIY_EYES.length)].id;
-    const randomEarring = DIY_EARRINGS[Math.floor(Math.random() * DIY_EARRINGS.length)].id;
+    const newParts: Record<CategoryType, string> = {
+      Body: '',
+      Earring: '',
+      Eyes: '',
+      Head: '',
+    };
 
-    setSelectedBody(randomBody);
-    setSelectedHead(randomHead);
-    setSelectedEyes(randomEyes);
-    setSelectedEarring(randomEarring);
-    onToast('Randomized!', 'Created new unique DIY NodeMonke', 'info');
+    SERIES_COMPONENTS[activeSeries].forEach((cat) => {
+      const available = components[activeSeries][cat];
+      if (available && available.length > 0) {
+        const valid = available.filter((p) => p.url !== 'none');
+        if (valid.length > 0) {
+          if (cat === 'Body') {
+            // Body is required
+            newParts.Body = valid[Math.floor(Math.random() * valid.length)].url;
+          } else {
+            // Other parts have 75% chance of being selected, 25% none
+            if (Math.random() > 0.25) {
+              newParts[cat] = valid[Math.floor(Math.random() * valid.length)].url;
+            } else {
+              newParts[cat] = 'none';
+            }
+          }
+        }
+      }
+    });
+
+    setSelectedParts(newParts);
+    onToast('🎲 随机搭配完成！', `已为 ${activeSeries.toUpperCase()} 系列生成随机组合`, 'info');
   };
 
-  const handleReset = () => {
-    setSelectedBody('gold');
-    setSelectedHead('crown');
-    setSelectedEyes('deathbot');
-    setSelectedEarring('gold');
-    setBgColor('#0A0D14');
-  };
+  // Save Avatar (Download High-Res PNG)
+  const handleSaveAvatar = async () => {
+    setSaving(true);
+    try {
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = 600;
+      exportCanvas.height = 600;
+      const ctx = exportCanvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas not available');
 
-  const handleDownload = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+      if (effectiveBg) {
+        ctx.fillStyle = effectiveBg;
+        ctx.fillRect(0, 0, 600, 600);
+      }
 
-    // Create high-res 560x560 export
-    const exportCanvas = document.createElement('canvas');
-    exportCanvas.width = 560;
-    exportCanvas.height = 560;
-    const exportCtx = exportCanvas.getContext('2d');
-    if (exportCtx) {
-      exportCtx.imageSmoothingEnabled = false;
-      exportCtx.drawImage(canvas, 0, 0, 560, 560);
+      const layersToDraw = ['Body', 'Earring', 'Eyes', 'Head'] as CategoryType[];
+      for (const cat of layersToDraw) {
+        const url = selectedParts[cat];
+        if (url && url !== 'none') {
+          const img = await loadCachedImage(url);
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(img, 0, 0, 600, 600);
+        }
+      }
+
+      const a = document.createElement('a');
+      a.href = exportCanvas.toDataURL('image/png');
+      a.download = `diynm-${activeSeries}-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      onToast('头像已保存！', '成功导出 600px 高清无损 PNG 头像', 'success');
+    } catch (err: any) {
+      console.error('Failed to save avatar:', err);
+      onToast('保存失败', err.message || '请重试', 'error');
+    } finally {
+      setSaving(false);
     }
-
-    const a = document.createElement('a');
-    a.href = exportCanvas.toDataURL('image/png');
-    a.download = `diy-nodemonke-${selectedBody}-${selectedHead}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-
-    onToast('Downloaded!', 'Saved High-Res DIY Monke PNG', 'success');
   };
+
+  const currentAvailableParts = components[activeSeries][activeCategory] || [];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
+    <div className="max-w-6xl mx-auto space-y-6">
       
       {/* Title Header */}
-      <div className="text-center space-y-2">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-mono font-semibold">
+      <div className="text-center space-y-1.5">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono font-semibold">
           <Paintbrush className="w-3.5 h-3.5" />
-          <span>NODEMONKES DIY AVATAR STUDIO</span>
+          <span>OFFICIAL NODEMONKES DIY AVATAR CREATOR</span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-          Create & Customize Your Custom Monke
+          NodeMonkes DIY 头像工坊
         </h1>
         <p className="text-slate-400 text-sm max-w-xl mx-auto font-sans">
-          Mix and match legendary pixel traits, colors, crowns, laser eyes, and accessories with real-time Canvas rendering.
+          支持 Normal、Dog、Block、Rabbit、Peer 全系列官方原始图层，自由换装、图层拼装与无损导出。
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* Main Studio Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* Left: Live Canvas Preview & Quick Action Bar */}
-        <div className="lg:col-span-5 flex flex-col items-center gap-4">
-          <div className="relative w-full aspect-square max-w-md rounded-3xl glass-panel p-6 flex items-center justify-center shadow-2xl border border-white/10 overflow-hidden group">
-            <canvas
-              ref={canvasRef}
-              width={280}
-              height={280}
-              className="w-full h-full object-contain pixelated relative z-10 filter drop-shadow-2xl"
-            />
-            <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-xs font-mono text-slate-300">
-              <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-              <span>CUSTOM CANVAS COMPOSITE</span>
+        {/* Left Side: Preview Canvas & Action Buttons */}
+        <div className="lg:col-span-5 space-y-4">
+          <div className="glass-panel p-5 rounded-3xl border border-white/10 shadow-2xl space-y-4">
+            
+            {/* Canvas Preview Box */}
+            <div className="relative w-full aspect-square rounded-2xl bg-black/40 border border-white/10 flex items-center justify-center overflow-hidden group shadow-inner">
+              {bgMode === 'transparent' && (
+                <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:12px_12px]" />
+              )}
+              
+              <canvas
+                ref={canvasRef}
+                width={500}
+                height={500}
+                className="w-full h-full object-contain pixelated relative z-10 filter drop-shadow-2xl"
+              />
+
+              {loading && (
+                <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2 z-20">
+                  <RefreshCw className="w-6 h-6 text-emerald-400 animate-spin" />
+                  <span className="text-xs font-mono text-slate-300">正在加载全量官方图层...</span>
+                </div>
+              )}
+
+              <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-[11px] font-mono text-slate-300">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>{activeSeries.toUpperCase()} SERIES</span>
+              </div>
             </div>
-          </div>
 
-          <div className="w-full max-w-md flex items-center gap-2">
-            <button
-              onClick={handleRandomize}
-              className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 font-mono text-xs font-bold transition-all shadow-md"
-            >
-              <Shuffle className="w-4 h-4" />
-              <span>🎲 Randomize</span>
-            </button>
-            <button
-              onClick={handleReset}
-              className="p-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-all"
-              title="Reset"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
-          </div>
+            {/* Quick Actions (Randomize & Save) */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                onClick={handleRandomize}
+                disabled={loading}
+                className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 font-semibold text-xs transition-all shadow-md active:scale-95"
+              >
+                <Shuffle className="w-4 h-4 text-emerald-400" />
+                <span>🎲 随机搭配</span>
+              </button>
 
-          <button
-            onClick={handleDownload}
-            className="w-full max-w-md flex items-center justify-center gap-2 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-500 hover:brightness-110 text-white font-bold text-sm shadow-xl shadow-purple-500/25 transition-all"
-          >
-            <Download className="w-4 h-4" />
-            <span>Download High-Res 560px PNG</span>
-          </button>
+              <button
+                onClick={handleSaveAvatar}
+                disabled={loading || saving}
+                className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
+              >
+                {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                <span>{saving ? '保存中...' : '💾 保存头像'}</span>
+              </button>
+            </div>
+
+            {/* Background Selector Buttons */}
+            <div className="space-y-2 pt-3 border-t border-white/5">
+              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">
+                背景底色配置
+              </span>
+              <div className="grid grid-cols-4 gap-1.5">
+                <button
+                  onClick={() => setBgMode('transparent')}
+                  className={clsx(
+                    'py-2 px-1 rounded-lg text-xs font-medium border transition-all text-center',
+                    bgMode === 'transparent'
+                      ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 font-bold shadow'
+                      : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
+                  )}
+                >
+                  无背景
+                </button>
+
+                <button
+                  onClick={() => setBgMode('orange')}
+                  className={clsx(
+                    'py-2 px-1 rounded-lg text-xs font-medium border transition-all text-center',
+                    bgMode === 'orange'
+                      ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 font-bold shadow'
+                      : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
+                  )}
+                >
+                  橙色背景
+                </button>
+
+                <button
+                  onClick={() => setBgMode('auto')}
+                  className={clsx(
+                    'py-2 px-1 rounded-lg text-xs font-medium border transition-all text-center',
+                    bgMode === 'auto'
+                      ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 font-bold shadow'
+                      : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
+                  )}
+                >
+                  自动背景
+                </button>
+
+                <button
+                  onClick={() => setBgMode('custom')}
+                  className={clsx(
+                    'py-2 px-1 rounded-lg text-xs font-medium border transition-all text-center',
+                    bgMode === 'custom'
+                      ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 font-bold shadow'
+                      : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
+                  )}
+                >
+                  自选颜色
+                </button>
+              </div>
+
+              {/* Custom Color Palette */}
+              {bgMode === 'custom' && (
+                <div className="p-2.5 rounded-xl bg-slate-900/80 border border-white/5 flex items-center gap-2 flex-wrap animate-in fade-in">
+                  {PRESET_COLORS.map((c) => (
+                    <button
+                      key={c.value}
+                      onClick={() => setCustomBgColor(c.value)}
+                      title={c.name}
+                      className={clsx(
+                        'w-6 h-6 rounded-md border transition-transform',
+                        customBgColor.toLowerCase() === c.value.toLowerCase()
+                          ? 'scale-110 ring-2 ring-emerald-400 border-white'
+                          : 'border-white/20 hover:scale-105'
+                      )}
+                      style={{ backgroundColor: c.value }}
+                    />
+                  ))}
+                  <input
+                    type="color"
+                    value={customBgColor}
+                    onChange={(e) => setCustomBgColor(e.target.value)}
+                    className="w-6 h-6 rounded cursor-pointer bg-transparent border-0"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Series Buttons */}
+            <div className="space-y-2 pt-3 border-t border-white/5">
+              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">
+                系列切换 (Series)
+              </span>
+              <div className="grid grid-cols-5 gap-1.5">
+                {SERIES_NAMES.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => handleSeriesChange(s.id)}
+                    className={clsx(
+                      'py-2 rounded-xl text-xs font-mono font-semibold transition-all text-center border',
+                      activeSeries === s.id
+                        ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-bold shadow-lg shadow-emerald-500/20 scale-[1.02]'
+                        : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
+                    )}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+          </div>
         </div>
 
-        {/* Right: Trait Customizers */}
-        <div className="lg:col-span-7 space-y-5 glass-panel p-6 rounded-3xl border border-white/10 shadow-xl">
+        {/* Right Side: Category Tabs & Trait Grid */}
+        <div className="lg:col-span-7 glass-panel p-5 rounded-3xl border border-white/10 shadow-2xl flex flex-col min-h-[580px]">
           
-          {/* Trait 1: Body Type */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider block">
-              1. Body Type & Fur
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-              {DIY_BODIES.map((b) => (
+          {/* Category Tabs */}
+          <div className="flex items-center gap-1.5 p-1 bg-slate-900/90 rounded-2xl border border-white/10 mb-4">
+            {CATEGORIES.map((cat) => {
+              const isSupported = SERIES_COMPONENTS[activeSeries].includes(cat);
+              const isActive = activeCategory === cat;
+
+              return (
                 <button
-                  key={b.id}
-                  onClick={() => setSelectedBody(b.id)}
+                  key={cat}
+                  onClick={() => isSupported && setActiveCategory(cat)}
+                  disabled={!isSupported}
                   className={clsx(
-                    'p-2.5 rounded-xl border text-xs font-mono flex items-center gap-2 transition-all',
-                    selectedBody === b.id
-                      ? 'bg-amber-500/20 border-amber-400 text-amber-300 font-bold shadow-md'
-                      : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
+                    'flex-1 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all text-center',
+                    !isSupported && 'opacity-30 cursor-not-allowed text-slate-600',
+                    isActive
+                      ? 'bg-emerald-500 text-slate-950 shadow-md font-bold'
+                      : 'text-slate-400 hover:text-white hover:bg-white/5'
                   )}
                 >
-                  <span className="w-3.5 h-3.5 rounded-full shadow-sm" style={{ backgroundColor: b.color }} />
-                  <span className="truncate">{b.name}</span>
+                  <span>{cat}</span>
+                  {!isSupported && <span className="text-[10px] ml-1 opacity-60">(无)</span>}
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
 
-          {/* Trait 2: Head Wear */}
-          <div className="space-y-2 pt-3 border-t border-white/5">
-            <label className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider block">
-              2. Head Wear
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {DIY_HEADS.map((h) => (
-                <button
-                  key={h.id}
-                  onClick={() => setSelectedHead(h.id)}
-                  className={clsx(
-                    'p-2.5 rounded-xl border text-xs font-sans transition-all text-left truncate',
-                    selectedHead === h.id
-                      ? 'bg-purple-500/20 border-purple-400 text-purple-300 font-bold shadow-md'
-                      : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
-                  )}
-                >
-                  {h.name}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Parts Grid */}
+          <div className="flex-1 overflow-y-auto max-h-[480px] pr-1">
+            {!SERIES_COMPONENTS[activeSeries].includes(activeCategory) ? (
+              <div className="flex items-center justify-center h-64 text-slate-500 text-sm font-mono">
+                {activeSeries.toUpperCase()} 系列不支持 {activeCategory} 组件
+              </div>
+            ) : currentAvailableParts.length === 0 ? (
+              <div className="flex items-center justify-center h-64 text-slate-500 text-sm font-mono">
+                正在加载组件...
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 p-1">
+                {currentAvailableParts.map((part) => {
+                  const isSelected = selectedParts[activeCategory] === part.url;
+                  const isNone = part.url === 'none';
 
-          {/* Trait 3: Eyes & Visors */}
-          <div className="space-y-2 pt-3 border-t border-white/5">
-            <label className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider block">
-              3. Eyes & Visor
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {DIY_EYES.map((e) => (
-                <button
-                  key={e.id}
-                  onClick={() => setSelectedEyes(e.id)}
-                  className={clsx(
-                    'p-2.5 rounded-xl border text-xs font-sans transition-all text-left truncate',
-                    selectedEyes === e.id
-                      ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 font-bold shadow-md'
-                      : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
-                  )}
-                >
-                  {e.name}
-                </button>
-              ))}
-            </div>
-          </div>
+                  return (
+                    <div
+                      key={part.value}
+                      onClick={() => handleSelectPart(activeCategory, part.url)}
+                      className={clsx(
+                        'aspect-square rounded-2xl p-2 cursor-pointer transition-all duration-200 flex flex-col items-center justify-between border group relative overflow-hidden',
+                        isSelected
+                          ? 'bg-emerald-950/60 border-emerald-400 ring-2 ring-emerald-500/50 shadow-lg shadow-emerald-500/20 scale-[1.03]'
+                          : 'bg-slate-900/60 border-white/5 hover:border-emerald-500/40 hover:bg-slate-800/80 hover:-translate-y-0.5'
+                      )}
+                    >
+                      {/* Image Thumbnail or None Icon */}
+                      <div className="w-full h-full flex items-center justify-center overflow-hidden p-1">
+                        {isNone ? (
+                          <div className="relative w-10 h-10 rounded-full border-2 border-dashed border-slate-500 flex items-center justify-center">
+                            <div className="w-8 h-0.5 bg-slate-500 transform rotate-45" />
+                          </div>
+                        ) : (
+                          <img
+                            src={part.url}
+                            alt={part.value}
+                            loading="lazy"
+                            className="w-full h-full object-contain pixelated transform group-hover:scale-110 transition-transform duration-200"
+                          />
+                        )}
+                      </div>
 
-          {/* Trait 4: Earring */}
-          <div className="space-y-2 pt-3 border-t border-white/5">
-            <label className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider block">
-              4. Earring & Accessories
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-              {DIY_EARRINGS.map((ea) => (
-                <button
-                  key={ea.id}
-                  onClick={() => setSelectedEarring(ea.id)}
-                  className={clsx(
-                    'p-2 rounded-xl border text-xs font-sans transition-all text-center truncate',
-                    selectedEarring === ea.id
-                      ? 'bg-amber-500/20 border-amber-400 text-amber-300 font-bold shadow-md'
-                      : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
-                  )}
-                >
-                  {ea.name}
-                </button>
-              ))}
-            </div>
-          </div>
+                      {/* Label */}
+                      <span className="text-[10px] text-center font-sans text-slate-300 truncate w-full px-1">
+                        {part.value}
+                      </span>
 
-          {/* Trait 5: Background */}
-          <div className="space-y-2 pt-3 border-t border-white/5">
-            <label className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider block">
-              5. Canvas Background Color
-            </label>
-            <div className="flex items-center gap-2 flex-wrap">
-              {PRESET_COLORS.map((c) => (
-                <button
-                  key={c.value}
-                  onClick={() => setBgColor(c.value)}
-                  className={clsx(
-                    'w-7 h-7 rounded-lg border transition-transform',
-                    bgColor.toLowerCase() === c.value.toLowerCase()
-                      ? 'scale-110 ring-2 ring-purple-400 border-white'
-                      : 'border-white/20 hover:scale-105'
-                  )}
-                  style={{ backgroundColor: c.value }}
-                />
-              ))}
-              <input
-                type="color"
-                value={bgColor}
-                onChange={(e) => setBgColor(e.target.value)}
-                className="w-7 h-7 rounded-lg cursor-pointer bg-transparent border-0"
-              />
-            </div>
+                      {/* Selected Indicator Check */}
+                      {isSelected && (
+                        <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center shadow">
+                          <Check className="w-3 h-3 stroke-[3]" />
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
         </div>
