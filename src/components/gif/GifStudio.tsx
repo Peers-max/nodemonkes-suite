@@ -233,22 +233,22 @@ export const GifStudio: React.FC<GifStudioProps> = ({
       }
 
       const deltaTime = currentTime - lastTimeRef.current;
-      const frameDelay = BASE_FRAME_DELAY / speed;
+      lastTimeRef.current = currentTime;
 
-      if (deltaTime >= frameDelay) {
-        const c = canvasRef.current?.getContext('2d');
-        if (c && upperImgRef.current && lowerImgRef.current) {
-          drawOriginalFrame(
-            c,
-            upperImgRef.current,
-            lowerImgRef.current,
-            progressRef.current,
-            resolution,
-            bgColor
-          );
-          progressRef.current = (progressRef.current + 1 / FRAME_COUNT) % 1;
-          lastTimeRef.current = currentTime;
-        }
+      // Advance progress smoothly based on real elapsed time (1 full cycle = 1200ms / speed)
+      const cycleDurationMs = 1200 / speed;
+      progressRef.current = (progressRef.current + (deltaTime / cycleDurationMs)) % 1;
+
+      const c = canvasRef.current?.getContext('2d');
+      if (c && upperImgRef.current && lowerImgRef.current) {
+        drawOriginalFrame(
+          c,
+          upperImgRef.current,
+          lowerImgRef.current,
+          progressRef.current,
+          resolution,
+          bgColor
+        );
       }
 
       animationRef.current = requestAnimationFrame(animate);
