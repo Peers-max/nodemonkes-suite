@@ -175,7 +175,7 @@ export const translations: Record<Language, Translations> = {
     langSwitchBtn: 'EN',
 
     // Footer
-    footerDesc: 'NodeMonkes 官方生态综合门户',
+    footerDesc: 'NodeMonkes 社区铭文创作工具箱',
     footerSatflow: 'SatFlow 交易市场',
     footerOrdnet: 'Ord.net 交易市场',
     footerRights: '100% 纯前端离线合成渲染 • 2026',
@@ -261,7 +261,7 @@ export const translations: Record<Language, Translations> = {
     gifErrorInputDesc: '请输入 1 - 10000 之间的有效 ID',
 
     // DIY Studio
-    diyBadge: 'NODEMONKES 官方 DIY 头像工坊',
+    diyBadge: 'NODEMONKES DIY 头像工坊',
     diyTitle: 'NodeMonkes DIY 头像工坊',
     diySub: '100% 还原原版全部 5 大系列真实图层，支持身体、耳环、眼睛、头部自由拼装与最高 4K 极清导出。',
     diySeriesSuffix: '系列',
@@ -280,7 +280,7 @@ export const translations: Record<Language, Translations> = {
     diyCatEyes: '眼睛',
     diyCatHead: '头部',
     diyNotSupported: '此系列不支持该部件',
-    diyLoadingComponents: '正在加载官方组件...',
+    diyLoadingComponents: '正在加载图层组件...',
     diySuccess: '头像保存成功！',
     diySuccessDesc: '已下载高清无损 PNG',
     diySaveFailed: '保存失败',
@@ -331,7 +331,7 @@ export const translations: Record<Language, Translations> = {
     langSwitchBtn: '中文',
 
     // Footer
-    footerDesc: 'Official NodeMonkes All-in-One Ordinals Hub',
+    footerDesc: 'NodeMonkes Community Hub & Creative Toolkit',
     footerSatflow: 'SatFlow Marketplace',
     footerOrdnet: 'Ord.net Marketplace',
     footerRights: '100% Client-Side Inscriptions Studio • 2026',
@@ -417,7 +417,7 @@ export const translations: Record<Language, Translations> = {
     gifErrorInputDesc: 'Please enter a valid ID (1 - 10000)',
 
     // DIY Studio
-    diyBadge: 'OFFICIAL NODEMONKES DIY AVATAR CREATOR',
+    diyBadge: 'NODEMONKES DIY AVATAR CREATOR',
     diyTitle: 'NodeMonkes DIY Avatar Creator',
     diySub: '100% authentic 5 series layer engine. Freely customize Body, Earring, Eyes, Head with up to 4K Ultra HD export.',
     diySeriesSuffix: 'Series',
@@ -436,7 +436,7 @@ export const translations: Record<Language, Translations> = {
     diyCatEyes: 'Eyes',
     diyCatHead: 'Head',
     diyNotSupported: 'This series does not support this component',
-    diyLoadingComponents: 'Loading official components...',
+    diyLoadingComponents: 'Loading layer components...',
     diySuccess: 'Avatar Saved Successfully!',
     diySuccessDesc: 'Lossless HD PNG downloaded',
     diySaveFailed: 'Save Failed',
