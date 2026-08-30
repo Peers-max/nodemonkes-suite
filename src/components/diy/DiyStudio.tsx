@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Paintbrush, Download, Shuffle, RefreshCw, Check } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Paintbrush, Download, Shuffle, RefreshCw, Check, Palette } from 'lucide-react';
 import { clsx } from 'clsx';
-import { BODY_COLORS } from '../../utils/constants';
+import { BODY_COLORS, PRESET_COLORS } from '../../utils/constants';
 
 interface DiyStudioProps {
   onToast: (title: string, desc?: string, type?: 'success' | 'info' | 'error') => void;
@@ -9,6 +9,7 @@ interface DiyStudioProps {
 
 type SeriesType = 'normal' | 'dog' | 'block' | 'rabbit' | 'peer';
 type CategoryType = 'Body' | 'Earring' | 'Eyes' | 'Head';
+type BgModeType = 'transparent' | 'orange' | 'auto' | 'custom';
 
 interface TraitPart {
   value: string;
@@ -44,6 +45,43 @@ const SERIES_BUTTONS: { id: SeriesType; label: string }[] = [
   { id: 'peer', label: 'Peer' },
 ];
 
+const RESOLUTION_OPTIONS = [
+  { label: '512px', value: 512, desc: '社交头像' },
+  { label: '1008px', value: 1008, desc: '原版高清' },
+  { label: '2048px (2K)', value: 2048, desc: '2K 超清' },
+  { label: '4096px (4K)', value: 4096, desc: '4K 极清' },
+];
+
+// Helper to safely load layer images without CORS cache mismatch
+async function loadLayerImage(url: string): Promise<HTMLImageElement> {
+  try {
+    const res = await fetch(url, { mode: 'cors' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(img);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Image decode error'));
+      };
+      img.src = objectUrl;
+    });
+  } catch {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error(`Failed to load: ${url}`));
+      img.src = url.includes('?') ? `${url}&t=${Date.now()}` : `${url}?t=${Date.now()}`;
+    });
+  }
+}
+
 export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
   const [activeSeries, setActiveSeries] = useState<SeriesType>('normal');
   const [activeCategory, setActiveCategory] = useState<CategoryType>('Body');
@@ -55,7 +93,11 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
     Head: '',
   });
 
-  const [bgColor, setBgColor] = useState<string>('transparent');
+  // Background State Mode
+  const [bgMode, setBgMode] = useState<BgModeType>('transparent');
+  const [customColor, setCustomColor] = useState<string>('#310000');
+  const [saveResolution, setSaveResolution] = useState<number>(1008);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -67,7 +109,25 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
     peer: { Body: [], Earring: [], Eyes: [], Head: [] },
   });
 
-  const colorInputRef = useRef<HTMLInputElement>(null);
+  // Calculate dynamic background color based on mode
+  const currentBgColor = useMemo(() => {
+    if (bgMode === 'transparent') return 'transparent';
+    if (bgMode === 'orange') return '#F97316';
+    if (bgMode === 'custom') return customColor;
+    if (bgMode === 'auto') {
+      const bodyUrl = selectedParts.Body;
+      if (bodyUrl && bodyUrl !== 'none') {
+        const filename = bodyUrl.split('/').pop()?.replace('.png', '').toLowerCase() || '';
+        for (const [key, color] of Object.entries(BODY_COLORS)) {
+          if (filename.includes(key.toLowerCase())) {
+            return color;
+          }
+        }
+      }
+      return '#FFAA01'; // Default fallback
+    }
+    return 'transparent';
+  }, [bgMode, customColor, selectedParts.Body]);
 
   // 1. Fetch Metadata and Build Component Lists (Ported 1:1 from original r2_content.html)
   useEffect(() => {
@@ -218,27 +278,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
     setSelectedParts(newParts);
   };
 
-  // Auto Background
-  const setAutoBgColor = () => {
-    const bodyUrl = selectedParts.Body;
-    if (!bodyUrl || bodyUrl === 'none') {
-      onToast('请先选择身体部件', '无法匹配底色', 'error');
-      return;
-    }
-
-    const filename = bodyUrl.split('/').pop()?.replace('.png', '').toLowerCase() || '';
-    for (const [key, color] of Object.entries(BODY_COLORS)) {
-      if (filename.includes(key.toLowerCase())) {
-        setBgColor(color);
-        onToast('自动背景设置完成！', `匹配颜色: ${color}`, 'success');
-        return;
-      }
-    }
-    setBgColor('transparent');
-    onToast('未找到匹配背景色', '已设为透明', 'info');
-  };
-
-  // Save Avatar (Ported 1:1 from original saveAvatar function)
+  // Save Avatar (with selectable resolution up to 4K and bulletproof layer rendering)
   const saveAvatar = async () => {
     setSaving(true);
     try {
@@ -246,29 +286,23 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('Canvas not available');
 
-      const OUTPUT_SIZE = 1008;
-      canvas.width = OUTPUT_SIZE;
-      canvas.height = OUTPUT_SIZE;
+      const size = saveResolution;
+      canvas.width = size;
+      canvas.height = size;
       ctx.imageSmoothingEnabled = false;
 
       // Draw background
-      if (bgColor && bgColor !== 'transparent') {
-        ctx.fillStyle = bgColor;
-        ctx.fillRect(0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
+      if (currentBgColor && currentBgColor !== 'transparent') {
+        ctx.fillStyle = currentBgColor;
+        ctx.fillRect(0, 0, size, size);
       }
 
       // Draw layers in order: Body -> Earring -> Eyes -> Head
       for (const category of CATEGORIES) {
         const imgSrc = selectedParts[category];
         if (imgSrc && imgSrc !== 'none') {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          await new Promise<void>((resolve, reject) => {
-            img.onload = () => resolve();
-            img.onerror = () => reject(new Error(`Failed to load ${category}`));
-            img.src = imgSrc;
-          });
-          ctx.drawImage(img, 0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
+          const img = await loadLayerImage(imgSrc);
+          ctx.drawImage(img, 0, 0, size, size);
         }
       }
 
@@ -277,13 +311,13 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `avatar-${Date.now()}.png`;
+        link.download = `nodemonke_avatar_${activeSeries}_${size}px_${Date.now()}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         setTimeout(() => URL.revokeObjectURL(url), 100);
 
-        onToast('头像保存成功！', '已导出 1008px 原版高清无损 PNG 头像', 'success');
+        onToast('头像保存成功！', `已下载 ${size} × ${size} 高清无损 PNG`, 'success');
         setSaving(false);
       }, 'image/png');
     } catch (err: any) {
@@ -308,7 +342,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
           NodeMonkes DIY 头像工坊
         </h1>
         <p className="text-slate-400 text-sm max-w-xl mx-auto font-sans">
-          100% 还原原版全部 5 大系列真实图层，支持身体、耳环、眼睛、头部自由拼装与高清导出。
+          100% 还原原版全部 5 大系列真实图层，支持身体、耳环、眼睛、头部自由拼装与最高 4K 极清导出。
         </p>
       </div>
 
@@ -321,16 +355,17 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
             {/* ⭐️ EXACT Original Preview Container with 4 stacked <img> tags */}
             <div 
               className="relative w-full aspect-square rounded-2xl border border-white/10 overflow-hidden shadow-inner flex items-center justify-center transition-colors"
-              style={{ backgroundColor: bgColor }}
+              style={{ backgroundColor: currentBgColor }}
             >
               {/* Checkerboard Pattern for transparent bg */}
-              {bgColor === 'transparent' && (
+              {currentBgColor === 'transparent' && (
                 <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:12px_12px]" />
               )}
 
               {/* Layer 1: Body */}
               {selectedParts.Body && selectedParts.Body !== 'none' && (
                 <img
+                  crossOrigin="anonymous"
                   src={selectedParts.Body}
                   alt="Body Layer"
                   className="absolute inset-0 w-full h-full object-contain pixelated pointer-events-none z-10"
@@ -340,6 +375,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
               {/* Layer 2: Earring */}
               {selectedParts.Earring && selectedParts.Earring !== 'none' && (
                 <img
+                  crossOrigin="anonymous"
                   src={selectedParts.Earring}
                   alt="Earring Layer"
                   className="absolute inset-0 w-full h-full object-contain pixelated pointer-events-none z-20"
@@ -349,6 +385,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
               {/* Layer 3: Eyes */}
               {selectedParts.Eyes && selectedParts.Eyes !== 'none' && (
                 <img
+                  crossOrigin="anonymous"
                   src={selectedParts.Eyes}
                   alt="Eyes Layer"
                   className="absolute inset-0 w-full h-full object-contain pixelated pointer-events-none z-30"
@@ -358,6 +395,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
               {/* Layer 4: Head */}
               {selectedParts.Head && selectedParts.Head !== 'none' && (
                 <img
+                  crossOrigin="anonymous"
                   src={selectedParts.Head}
                   alt="Head Layer"
                   className="absolute inset-0 w-full h-full object-contain pixelated pointer-events-none z-40"
@@ -378,26 +416,50 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
             </div>
 
             {/* Quick Actions (Save & Randomize) */}
-            <div className="grid grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                onClick={randomize}
-                disabled={loading}
-                className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 font-semibold text-xs transition-all shadow-md active:scale-95"
-              >
-                <Shuffle className="w-4 h-4 text-emerald-400" />
-                <span>🎲 随机搭配</span>
-              </button>
+            <div className="space-y-2.5">
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={randomize}
+                  disabled={loading}
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 font-semibold text-xs transition-all shadow-md active:scale-95"
+                >
+                  <Shuffle className="w-4 h-4 text-emerald-400" />
+                  <span>🎲 随机搭配</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={saveAvatar}
-                disabled={loading || saving}
-                className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
-              >
-                {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                <span>{saving ? '正在保存...' : '💾 保存头像'}</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={saveAvatar}
+                  disabled={loading || saving}
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
+                >
+                  {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  <span>{saving ? '正在保存...' : `💾 保存头像 (${saveResolution}px)`}</span>
+                </button>
+              </div>
+
+              {/* Resolution Options Selector */}
+              <div className="flex items-center justify-between gap-1 p-1 bg-slate-900/80 rounded-xl border border-white/5 text-[11px] font-mono">
+                <span className="text-slate-400 px-2">导出分辨率:</span>
+                <div className="flex items-center gap-1">
+                  {RESOLUTION_OPTIONS.map((r) => (
+                    <button
+                      key={r.value}
+                      type="button"
+                      onClick={() => setSaveResolution(r.value)}
+                      className={clsx(
+                        'px-2 py-1 rounded-lg transition-all',
+                        saveResolution === r.value
+                          ? 'bg-emerald-500 text-slate-950 font-bold shadow'
+                          : 'text-slate-400 hover:text-white'
+                      )}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Background Selector Buttons */}
@@ -408,10 +470,10 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
               <div className="grid grid-cols-4 gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setBgColor('transparent')}
+                  onClick={() => setBgMode('transparent')}
                   className={clsx(
                     'py-2 px-1 rounded-lg text-xs font-medium border transition-all text-center',
-                    bgColor === 'transparent'
+                    bgMode === 'transparent'
                       ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 font-bold shadow'
                       : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
                   )}
@@ -421,10 +483,10 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
 
                 <button
                   type="button"
-                  onClick={() => setBgColor('#F97316')}
+                  onClick={() => setBgMode('orange')}
                   className={clsx(
                     'py-2 px-1 rounded-lg text-xs font-medium border transition-all text-center',
-                    bgColor === '#F97316'
+                    bgMode === 'orange'
                       ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 font-bold shadow'
                       : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
                   )}
@@ -434,9 +496,12 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
 
                 <button
                   type="button"
-                  onClick={setAutoBgColor}
+                  onClick={() => setBgMode('auto')}
                   className={clsx(
-                    'py-2 px-1 rounded-lg text-xs font-medium border transition-all text-center bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
+                    'py-2 px-1 rounded-lg text-xs font-medium border transition-all text-center',
+                    bgMode === 'auto'
+                      ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 font-bold shadow'
+                      : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
                   )}
                 >
                   自动背景
@@ -445,9 +510,10 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
                 <div className="relative">
                   <button
                     type="button"
+                    onClick={() => setBgMode('custom')}
                     className={clsx(
                       'w-full py-2 px-1 rounded-lg text-xs font-medium border transition-all text-center relative overflow-hidden flex items-center justify-center',
-                      bgColor !== 'transparent' && bgColor !== '#F97316'
+                      bgMode === 'custom'
                         ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 font-bold shadow'
                         : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
                     )}
@@ -455,13 +521,39 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
                     <span>自选颜色</span>
                     <input
                       type="color"
-                      value={bgColor === 'transparent' ? '#000000' : bgColor}
-                      onChange={(e) => setBgColor(e.target.value)}
+                      value={customColor}
+                      onChange={(e) => {
+                        setCustomColor(e.target.value);
+                        setBgMode('custom');
+                      }}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
                   </button>
                 </div>
               </div>
+
+              {bgMode === 'custom' && (
+                <div className="p-2 rounded-xl bg-slate-900/80 border border-white/5 flex items-center gap-2 flex-wrap animate-in fade-in">
+                  {PRESET_COLORS.map((c) => (
+                    <button
+                      key={c.value}
+                      type="button"
+                      onClick={() => {
+                        setCustomColor(c.value);
+                        setBgMode('custom');
+                      }}
+                      title={c.name}
+                      className={clsx(
+                        'w-6 h-6 rounded-md border transition-transform',
+                        customColor.toLowerCase() === c.value.toLowerCase()
+                          ? 'scale-110 ring-2 ring-emerald-400 border-white'
+                          : 'border-white/20 hover:scale-105'
+                      )}
+                      style={{ backgroundColor: c.value }}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Series Buttons */}
@@ -556,6 +648,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
                           </div>
                         ) : (
                           <img
+                            crossOrigin="anonymous"
                             src={part.url}
                             alt={part.value}
                             loading="lazy"
