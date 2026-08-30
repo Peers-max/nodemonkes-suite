@@ -50,10 +50,13 @@ export const App: React.FC = () => {
 
   const addToast = useCallback((title: string, description?: string, type?: 'success' | 'info' | 'warning' | 'error') => {
     const id = Math.random().toString(36).substring(2, 9);
-    setToasts((prev) => [...prev, { id, title, description, type }]);
+    setToasts((prev) => {
+      const filtered = prev.slice(-1); // Keep at most 1 previous toast
+      return [...filtered, { id, title, description, type }];
+    });
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
+    }, 2500);
   }, []);
 
   const removeToast = useCallback((id: string) => {

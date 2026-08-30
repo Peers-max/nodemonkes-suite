@@ -216,7 +216,6 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
     });
 
     setSelectedParts(newParts);
-    onToast('🎲 随机搭配完成！', `已为 ${activeSeries.toUpperCase()} 系列随机生成外观`, 'info');
   };
 
   // Auto Background

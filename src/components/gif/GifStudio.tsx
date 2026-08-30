@@ -105,11 +105,11 @@ export const GifStudio: React.FC<GifStudioProps> = ({
   const [idInput, setIdInput] = useState(String(initialMonkeId));
   const [currentId, setCurrentId] = useState(initialMonkeId);
   const [mode, setMode] = useState<'normal' | 'santa'>('normal');
-  const [resolution] = useState(600); // Original resolution
+  const [resolution, setResolution] = useState(600); // 100 - 1200 px
   const [bgColor, setBgColor] = useState<string | null>(null); // null for transparent
   const [bgMode, setBgMode] = useState<'transparent' | 'auto' | 'custom'>('transparent');
   const [customColor, setCustomColor] = useState('#FFFFFF');
-  const [speed, setSpeed] = useState(1);
+  const [speed, setSpeed] = useState(1.0); // 0.1x to 5.0x
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState('');
@@ -310,9 +310,9 @@ export const GifStudio: React.FC<GifStudioProps> = ({
 
       if (!outputCanvasRef.current) {
         outputCanvasRef.current = document.createElement('canvas');
-        outputCanvasRef.current.width = resolution;
-        outputCanvasRef.current.height = resolution;
       }
+      outputCanvasRef.current.width = resolution;
+      outputCanvasRef.current.height = resolution;
 
       const ctx = outputCanvasRef.current.getContext('2d', { willReadFrequently: true });
       if (!ctx) throw new Error('Canvas not available');
@@ -336,13 +336,13 @@ export const GifStudio: React.FC<GifStudioProps> = ({
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `nodemonke_${currentId}_${mode}_${speed.toFixed(1)}x.gif`;
+        link.download = `nodemonke_${currentId}_${mode}_${resolution}px_${speed.toFixed(1)}x.gif`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
 
-        onToast('GIF 生成成功！', `已下载 nodemonke_${currentId}_${mode}.gif`, 'success');
+        onToast('GIF 生成成功！', `已下载 ${resolution}px ${speed.toFixed(1)}x 动图`, 'success');
         setProgress(0);
         setIsGenerating(false);
       });
@@ -369,7 +369,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
           Nodemonkes GIF Generator
         </h1>
         <p className="text-slate-400 text-sm max-w-xl mx-auto font-sans">
-          使用官方原版 Upper / Lower 分层 36 帧正弦插值动效，支持经典版与 Santa 圣诞版。
+          支持 0.1x ~ 5.0x 无极变速调节与 100px ~ 1200px 多档高清像素分辨率。
         </p>
       </div>
 
@@ -384,14 +384,14 @@ export const GifStudio: React.FC<GifStudioProps> = ({
             
             <canvas
               ref={canvasRef}
-              width={600}
-              height={600}
+              width={resolution}
+              height={resolution}
               className="w-full h-full object-contain pixelated relative z-10"
             />
 
             <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-[11px] font-mono text-slate-300">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>#{currentId} ({mode.toUpperCase()})</span>
+              <span>#{currentId} ({mode.toUpperCase()}) • {speed.toFixed(1)}x • {resolution}px</span>
             </div>
           </div>
 
@@ -428,7 +428,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
         {/* Right Side: Controls */}
         <div className="lg:col-span-6 space-y-4 glass-panel p-5 rounded-3xl border border-white/10 shadow-xl">
           
-          {/* Mode Switcher */}
+          {/* 1. Mode Switcher */}
           <div className="space-y-2">
             <span className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider block">
               1. 模式选择 (Mode)
@@ -464,7 +464,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
             </div>
           </div>
 
-          {/* Background Controls */}
+          {/* 2. Background Controls */}
           <div className="space-y-2 pt-3 border-t border-white/5">
             <span className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider block">
               2. 背景底色设置
@@ -545,30 +545,85 @@ export const GifStudio: React.FC<GifStudioProps> = ({
             )}
           </div>
 
-          {/* Speed Selector */}
+          {/* 3. Speed Control (0.1x - 5.0x Stepless Slider + Presets) */}
           <div className="space-y-2 pt-3 border-t border-white/5">
-            <span className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider block">
-              3. 播放速度 (Speed)
-            </span>
-            <div className="grid grid-cols-4 gap-1.5">
+            <div className="flex items-center justify-between text-xs font-mono">
+              <span className="text-slate-300 font-bold uppercase">3. 动画播放速度 (0.1x ~ 5.0x 无极变速)</span>
+              <span className="text-amber-400 font-bold text-sm">{speed.toFixed(1)}x</span>
+            </div>
+            
+            <input
+              type="range"
+              min={0.1}
+              max={5.0}
+              step={0.1}
+              value={speed}
+              onChange={(e) => setSpeed(parseFloat(e.target.value))}
+              className="w-full accent-amber-500 cursor-pointer h-2 bg-slate-800 rounded-lg"
+            />
+
+            <div className="grid grid-cols-5 gap-1.5 pt-1">
               {[
-                { label: '0.75x', val: 0.75 },
-                { label: '1.0x (原速)', val: 1.0 },
-                { label: '1.25x', val: 1.25 },
-                { label: '1.5x', val: 1.5 },
+                { label: '0.5x 慢速', val: 0.5 },
+                { label: '1.0x 原速', val: 1.0 },
+                { label: '2.0x 快速', val: 2.0 },
+                { label: '3.5x 极速', val: 3.5 },
+                { label: '5.0x 狂暴', val: 5.0 },
               ].map((s) => (
                 <button
                   key={s.val}
                   type="button"
                   onClick={() => setSpeed(s.val)}
                   className={clsx(
-                    'py-1.5 rounded-lg text-xs font-mono transition-all',
-                    speed === s.val
+                    'py-1 rounded-lg text-[11px] font-mono transition-all',
+                    Math.abs(speed - s.val) < 0.05
                       ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 shadow'
                       : 'bg-slate-900/60 text-slate-400 border border-white/5 hover:text-white'
                   )}
                 >
                   {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 4. Resolution Control (100px - 1200px Slider + Presets) */}
+          <div className="space-y-2 pt-3 border-t border-white/5">
+            <div className="flex items-center justify-between text-xs font-mono">
+              <span className="text-slate-300 font-bold uppercase">4. 分辨率尺寸 (100px ~ 1200px)</span>
+              <span className="text-white font-bold text-sm">{resolution} × {resolution} px</span>
+            </div>
+
+            <input
+              type="range"
+              min={100}
+              max={1200}
+              step={50}
+              value={resolution}
+              onChange={(e) => setResolution(parseInt(e.target.value, 10))}
+              className="w-full accent-amber-500 cursor-pointer h-2 bg-slate-800 rounded-lg"
+            />
+
+            <div className="grid grid-cols-5 gap-1.5 pt-1">
+              {[
+                { label: '200px', val: 200 },
+                { label: '400px', val: 400 },
+                { label: '600px 默认', val: 600 },
+                { label: '800px 高清', val: 800 },
+                { label: '1200px 超清', val: 1200 },
+              ].map((r) => (
+                <button
+                  key={r.val}
+                  type="button"
+                  onClick={() => setResolution(r.val)}
+                  className={clsx(
+                    'py-1 rounded-lg text-[11px] font-mono transition-all',
+                    resolution === r.val
+                      ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 shadow'
+                      : 'bg-slate-900/60 text-slate-400 border border-white/5 hover:text-white'
+                  )}
+                >
+                  {r.label}
                 </button>
               ))}
             </div>
@@ -581,7 +636,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
               onClick={handleGenerate}
               disabled={isGenerating || !images.upper || !images.lower}
               className={clsx(
-                'w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-xl',
+                'w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-xl',
                 isGenerating
                   ? 'bg-slate-800 text-slate-500 cursor-wait'
                   : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:brightness-110 text-slate-950 shadow-orange-500/20 active:scale-98'
@@ -595,7 +650,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
               ) : (
                 <>
                   <Download className="w-4 h-4" />
-                  <span>生成并下载 GIF 动图 (600px 36帧)</span>
+                  <span>导出 GIF 动图 ({resolution}px • {speed.toFixed(1)}x)</span>
                 </>
               )}
             </button>
