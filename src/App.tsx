@@ -8,9 +8,11 @@ import { GifStudio } from './components/gif/GifStudio';
 import { DiyStudio } from './components/diy/DiyStudio';
 import { SantaStudio } from './components/santa/SantaStudio';
 import { ToastContainer } from './components/ui/Toast';
-import { LanguageProvider } from './utils/i18n';
+import { LanguageProvider, useLanguage } from './utils/i18n';
 
 const AppContent: React.FC = () => {
+  const { t } = useLanguage();
+
   // Sync tab and ID with URL Search Params
   const getInitialTab = (): TabType => {
     const params = new URLSearchParams(window.location.search);
@@ -74,24 +76,24 @@ const AppContent: React.FC = () => {
         setError(null);
       } catch (err: any) {
         console.error('Failed to load NodeMonkes:', err);
-        setError('Failed to fetch NodeMonkes data. Please refresh or try again later.');
-        addToast('Network Warning', 'Could not load live metadata, check connection.', 'error');
+        setError(t.toastNetworkWarningDesc);
+        addToast(t.toastNetworkWarning, t.toastNetworkWarningDesc, 'error');
       } finally {
         setLoading(false);
       }
     };
 
     load();
-  }, [addToast]);
+  }, [addToast, t]);
 
   const handleOpenInGif = (id: number) => {
     handleTabChange('gif', id);
-    addToast('Loaded Monke in GIF Studio', `Monke #${id} ready to animate.`, 'info');
+    addToast(t.toastGifLoaded, `${t.toastGifLoadedDesc} (#${id})`, 'info');
   };
 
   const handleOpenInSanta = (id: number) => {
     handleTabChange('santa', id);
-    addToast('Loaded Monke in Santa Edition', `Monke #${id} festive view.`, 'info');
+    addToast(t.toastSantaLoaded, `${t.toastSantaLoadedDesc} (#${id})`, 'info');
   };
 
   return (

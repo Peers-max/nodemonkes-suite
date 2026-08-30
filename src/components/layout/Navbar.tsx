@@ -18,10 +18,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   const { lang, setLang, t } = useLanguage();
 
   const tabs = [
-    { id: 'explorer' as TabType, label: t.tabExplorer, icon: Search, badge: '10K' },
-    { id: 'gif' as TabType, label: t.tabGif, icon: Sparkles, badge: 'Studio' },
-    { id: 'diy' as TabType, label: t.tabDiy, icon: Paintbrush, badge: 'Creator' },
-    { id: 'santa' as TabType, label: t.tabSanta, icon: Gift, badge: 'Special' },
+    { id: 'explorer' as TabType, label: t.tabExplorer, icon: Search, badge: t.badge10k },
+    { id: 'gif' as TabType, label: t.tabGif, icon: Sparkles, badge: t.badgeStudio },
+    { id: 'diy' as TabType, label: t.tabDiy, icon: Paintbrush, badge: t.badgeCreator },
+    { id: 'santa' as TabType, label: t.tabSanta, icon: Gift, badge: t.badgeSpecial },
   ];
 
   const toggleLanguage = () => {
@@ -87,16 +87,16 @@ export const Navbar: React.FC<NavbarProps> = ({
           })}
         </nav>
 
-        {/* Right: Language Switcher Button (No public GitHub button) */}
+        {/* Right: Language Switcher Button */}
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={toggleLanguage}
-            title={lang === 'zh' ? 'Switch to English' : '切换为中文'}
+            title={t.langSwitchTitle}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold text-slate-300 hover:text-white bg-slate-900/80 hover:bg-slate-800 border border-white/10 transition-all shadow-sm active:scale-95"
           >
             <Globe className="w-3.5 h-3.5 text-amber-400" />
-            <span>{lang === 'zh' ? 'EN' : '中文'}</span>
+            <span>{t.langSwitchBtn}</span>
           </button>
         </div>
 

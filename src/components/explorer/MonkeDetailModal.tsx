@@ -78,7 +78,7 @@ export const MonkeDetailModal: React.FC<MonkeDetailModalProps> = ({
                 className="w-full h-full object-contain pixelated transform group-hover:scale-105 transition-transform duration-300"
               />
               <span className="absolute bottom-3 left-3 text-[10px] font-mono text-slate-400 bg-slate-900/80 px-2 py-0.5 rounded border border-white/5">
-                Block #{monke.block}
+                {t.modalBlock} #{monke.block}
               </span>
             </div>
 
@@ -90,8 +90,8 @@ export const MonkeDetailModal: React.FC<MonkeDetailModalProps> = ({
                   <span className="text-white font-semibold text-sm">#{monke.inscription}</span>
                 </div>
                 <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5">
-                  <span className="text-slate-500 block text-[10px] uppercase">TOTAL TRAITS</span>
-                  <span className="text-white font-semibold text-sm">{attrs.Count || 4} Traits</span>
+                  <span className="text-slate-500 block text-[10px] uppercase">{t.modalTotalTraits}</span>
+                  <span className="text-white font-semibold text-sm">{attrs.Count || 4} {t.modalTraitsUnit}</span>
                 </div>
               </div>
 
@@ -120,7 +120,7 @@ export const MonkeDetailModal: React.FC<MonkeDetailModalProps> = ({
                   className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-semibold bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 hover:brightness-110 shadow-lg shadow-orange-500/20 transition-all"
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span>{t.actionMakeGif}</span>
+                  <span>{t.modalMakeGif}</span>
                 </button>
                 <button
                   onClick={() => {
@@ -130,7 +130,7 @@ export const MonkeDetailModal: React.FC<MonkeDetailModalProps> = ({
                   className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-xs font-semibold bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 transition-all"
                 >
                   <Gift className="w-3.5 h-3.5 text-rose-400" />
-                  <span>{t.actionSanta}</span>
+                  <span>{t.modalSanta}</span>
                 </button>
               </div>
 
@@ -182,7 +182,7 @@ export const MonkeDetailModal: React.FC<MonkeDetailModalProps> = ({
                 className="flex items-center gap-1 text-amber-400 hover:text-amber-300 font-mono text-[11px]"
               >
                 {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                <span>{copied ? t.modalCopySuccess : 'Copy'}</span>
+                <span>{copied ? t.modalCopied : t.modalCopyKey}</span>
               </button>
             </div>
             <div 

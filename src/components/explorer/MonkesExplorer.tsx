@@ -130,7 +130,7 @@ export const MonkesExplorer: React.FC<MonkesExplorerProps> = ({
   const handleCopyPubkey = (text: string, id: number) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
-    onToast(t.modalCopySuccess, `Script PubKey for #${id} copied.`, 'success');
+    onToast(t.toastCopied, `${t.toastCopiedDesc} (#${id})`, 'success');
     setTimeout(() => setCopiedId(null), 2000);
   };
 
