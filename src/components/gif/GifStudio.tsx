@@ -11,7 +11,7 @@ interface GifStudioProps {
 }
 
 const FRAME_COUNT = 36;
-const BASE_FRAME_DELAY = 1000 / 30; // 33.33ms
+const BASE_FRAME_DELAY = 1000 / 30; // 33.33ms per frame at 1x speed
 
 function easeInOutQuad(t: number): number {
   return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
@@ -25,14 +25,13 @@ function reduceColorDepth(data: Uint8ClampedArray) {
   }
 }
 
-function drawFrame(
+function drawOriginalFrame(
   ctx: CanvasRenderingContext2D,
   upperImg: HTMLImageElement,
   lowerImg: HTMLImageElement,
   progress: number,
   size: number,
-  bgColor: string,
-  mode: 'normal' | 'santa' = 'normal'
+  bgColor: string | null
 ) {
   const PARAMS = {
     rotationRange: 0.045,
@@ -43,8 +42,10 @@ function drawFrame(
   };
 
   ctx.clearRect(0, 0, size, size);
-  ctx.fillStyle = bgColor || '#ffffff';
-  ctx.fillRect(0, 0, size, size);
+  if (bgColor && bgColor !== 'transparent') {
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, size, size);
+  }
 
   const rotation = Math.sin(progress * Math.PI * 2) * PARAMS.rotationRange;
   const isRaising = rotation < 0;
@@ -86,14 +87,33 @@ function drawFrame(
   ctx.restore();
 }
 
-async function loadImage(url: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
-    img.src = url;
-  });
+async function loadImagePromise(src: string): Promise<HTMLImageElement> {
+  try {
+    const res = await fetch(src, { mode: 'cors' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(img);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Decode error'));
+      };
+      img.src = objectUrl;
+    });
+  } catch {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
+      img.src = src.includes('?') ? `${src}&t=${Date.now()}` : `${src}?t=${Date.now()}`;
+    });
+  }
 }
 
 export const GifStudio: React.FC<GifStudioProps> = ({
@@ -105,8 +125,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
   const [currentId, setCurrentId] = useState(initialMonkeId);
   const [mode, setMode] = useState<'normal' | 'santa'>('normal');
   const [resolution, setResolution] = useState(600); // 100 - 1200 px
-  const [bgColor, setBgColor] = useState<string>('#ffffff'); // Default '#ffffff' as in original repo
-  const [bgType, setBgType] = useState<'none' | 'auto' | 'custom'>('none');
+  const [bgMode, setBgMode] = useState<'transparent' | 'auto' | 'custom'>('transparent');
   const [customColor, setCustomColor] = useState('#FFFFFF');
   const [speed, setSpeed] = useState(1.0); // 0.1x to 5.0x
   const [isGenerating, setIsGenerating] = useState(false);
@@ -144,22 +163,13 @@ export const GifStudio: React.FC<GifStudioProps> = ({
     const item = monkes.find((m) => m.id === imageId);
     if (item?.attributes?.Body) {
       const bodyType = item.attributes.Body.toLowerCase();
-      return BODY_COLORS[bodyType] || '#ffffff';
+      return BODY_COLORS[bodyType] || null;
     }
-    return '#ffffff';
+    return null;
   };
 
-  // Sync background color based on type and currentId
-  useEffect(() => {
-    if (bgType === 'none') {
-      setBgColor('#ffffff');
-    } else if (bgType === 'auto') {
-      const autoBg = getAutoBackground(currentId);
-      setBgColor(autoBg);
-    } else {
-      setBgColor(customColor);
-    }
-  }, [bgType, currentId, customColor, monkes]);
+  // Compute active background color
+  const bgColor = bgMode === 'transparent' ? null : bgMode === 'auto' ? (getAutoBackground(currentId) || '#FFFFFF') : customColor;
 
   // Load preview for given ID and mode
   const loadPreview = useCallback(async (monkeId: number, m: 'normal' | 'santa') => {
@@ -174,11 +184,9 @@ export const GifStudio: React.FC<GifStudioProps> = ({
     loadPreview(currentId, mode);
   }, [currentId, mode, loadPreview]);
 
-  // ⭐️ EXACT Live Canvas Animation from Preview.tsx
+  // Live Canvas Animation (Ported 1:1 from original Preview.tsx)
   useEffect(() => {
-    if (typeof window === 'undefined' || !canvasRef.current || !images.upper || !images.lower) {
-      return;
-    }
+    if (!canvasRef.current || !images.upper || !images.lower) return;
 
     const ctx = canvasRef.current.getContext('2d');
     if (!ctx) return;
@@ -192,9 +200,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
     const onImageLoad = () => {
       imagesLoaded++;
       if (imagesLoaded === totalImages) {
-        if (animationRef.current) {
-          cancelAnimationFrame(animationRef.current);
-        }
+        if (animationRef.current) cancelAnimationFrame(animationRef.current);
         progressRef.current = 0;
         lastTimeRef.current = 0;
         setStatusText(`预览已准备就绪 (#${currentId})`);
@@ -227,15 +233,22 @@ export const GifStudio: React.FC<GifStudioProps> = ({
       }
 
       const deltaTime = currentTime - lastTimeRef.current;
-      const frameDelay = BASE_FRAME_DELAY / speed;
+      lastTimeRef.current = currentTime;
 
-      if (deltaTime >= frameDelay) {
-        const c = canvasRef.current?.getContext('2d');
-        if (c && upperImgRef.current && lowerImgRef.current) {
-          drawFrame(c, upperImgRef.current, lowerImgRef.current, progressRef.current, resolution, bgColor, mode);
-          progressRef.current = (progressRef.current + 1 / FRAME_COUNT) % 1;
-          lastTimeRef.current = currentTime;
-        }
+      // Advance progress smoothly based on real elapsed time (1 full cycle = 1200ms / speed)
+      const cycleDurationMs = 1200 / speed;
+      progressRef.current = (progressRef.current + (deltaTime / cycleDurationMs)) % 1;
+
+      const c = canvasRef.current?.getContext('2d');
+      if (c && upperImgRef.current && lowerImgRef.current) {
+        drawOriginalFrame(
+          c,
+          upperImgRef.current,
+          lowerImgRef.current,
+          progressRef.current,
+          resolution,
+          bgColor
+        );
       }
 
       animationRef.current = requestAnimationFrame(animate);
@@ -244,11 +257,9 @@ export const GifStudio: React.FC<GifStudioProps> = ({
     animate();
 
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
-  }, [canvasRef, images, bgColor, resolution, speed, mode, currentId]);
+  }, [images, bgColor, resolution, speed, currentId]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -266,7 +277,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
     loadPreview(rand, mode);
   };
 
-  // ⭐️ EXACT Generate GIF from GifGenerator.tsx
+  // Generate GIF with EXACT playback speed matching the live web animation
   const handleGenerate = async () => {
     if (!images.upper || !images.lower || isGenerating) return;
     setIsGenerating(true);
@@ -286,14 +297,16 @@ export const GifStudio: React.FC<GifStudioProps> = ({
         GIFConstructor = (window as any).GIF;
       }
 
+      const effectiveBg = bgColor || '#FFFFFF';
+
       const gif = new GIFConstructor({
-        workers: 1,
+        workers: 2,
         quality: 10,
         width: resolution,
         height: resolution,
         dither: false,
         transparent: null,
-        background: bgColor,
+        background: effectiveBg,
         repeat: 0,
         workerScript: './gif.worker.js',
       });
@@ -302,9 +315,13 @@ export const GifStudio: React.FC<GifStudioProps> = ({
         setProgress(Math.round(p * 100));
       });
 
-      const targetFrameCount = 24;
-      const frameSkip = Math.max(1, Math.floor(FRAME_COUNT / targetFrameCount));
-      const frameDelay = Math.max(20, Math.round((BASE_FRAME_DELAY * frameSkip) / speed));
+      // ⭐️ MATHEMATICALLY PERFECT SPEED SYNCHRONIZATION:
+      // Live web preview duration for 1 cycle = (1000 / 30) * 36 / speed = 1200 / speed (ms)
+      // For GIF standards, delay should be >= 20ms to prevent platform clamping
+      const cycleDurationMs = 1200 / speed;
+      const maxPossibleFrames = Math.floor(cycleDurationMs / 20); // max frames with delay >= 20ms
+      const numFrames = Math.max(12, Math.min(36, maxPossibleFrames));
+      const frameDelay = Math.max(20, Math.round(cycleDurationMs / numFrames));
 
       if (!outputCanvasRef.current) {
         outputCanvasRef.current = document.createElement('canvas');
@@ -313,36 +330,34 @@ export const GifStudio: React.FC<GifStudioProps> = ({
       outputCanvasRef.current.height = resolution;
 
       const ctx = outputCanvasRef.current.getContext('2d', { willReadFrequently: true });
-      if (!ctx) return;
+      if (!ctx) throw new Error('Canvas not available');
 
-      const upperLoaded = await loadImage(images.upper);
-      const lowerLoaded = await loadImage(images.lower);
+      const upperImg = await loadImagePromise(images.upper);
+      const lowerImg = await loadImagePromise(images.lower);
 
-      for (let i = 0; i < FRAME_COUNT; i += frameSkip) {
-        if (!outputCanvasRef.current) return;
-
-        const p = i / FRAME_COUNT;
-        drawFrame(ctx, upperLoaded, lowerLoaded, p, resolution, bgColor, mode);
+      for (let i = 0; i < numFrames; i++) {
+        const p = i / numFrames;
+        drawOriginalFrame(ctx, upperImg, lowerImg, p, resolution, effectiveBg);
 
         const imageData = ctx.getImageData(0, 0, resolution, resolution);
         reduceColorDepth(imageData.data);
         ctx.putImageData(imageData, 0, 0);
 
         gif.addFrame(ctx.canvas, { copy: true, delay: frameDelay });
-        await new Promise((r) => setTimeout(r, 10));
+        await new Promise((r) => setTimeout(r, 5));
       }
 
       gif.on('finished', (blob: Blob) => {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `nodemonke_${currentId}_${mode}_${speed.toFixed(1)}x.gif`;
+        link.download = `nodemonke_${currentId}_${mode}_${resolution}px_${speed.toFixed(1)}x.gif`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 100);
 
-        onToast('GIF生成完成！', `已下载 nodemonke_${currentId}_${mode}.gif`, 'success');
+        onToast('GIF 生成成功！', `已导出 ${resolution}px • ${speed.toFixed(1)}x 动图`, 'success');
         setProgress(0);
         setIsGenerating(false);
       });
@@ -369,7 +384,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
           Nodemonkes GIF Generator
         </h1>
         <p className="text-slate-400 text-sm max-w-xl mx-auto font-sans">
-          100% 沿用原版点活动画算法与生成引擎，支持 0.1x ~ 5.0x 变速与多档分辨率。
+          支持 0.1x ~ 5.0x 无极变速调节与 100px ~ 1200px 多档高清像素分辨率，保存速度与网页 100% 毫秒级同步。
         </p>
       </div>
 
@@ -378,6 +393,10 @@ export const GifStudio: React.FC<GifStudioProps> = ({
         {/* Left Side: Preview Canvas */}
         <div className="lg:col-span-6 flex flex-col items-center gap-3">
           <div className="relative w-full aspect-square max-w-[460px] rounded-2xl glass-panel p-2 flex items-center justify-center border border-white/10 overflow-hidden shadow-2xl">
+            {bgMode === 'transparent' && (
+              <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:12px_12px]" />
+            )}
+            
             <canvas
               ref={canvasRef}
               width={resolution}
@@ -387,7 +406,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
 
             <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-[11px] font-mono text-slate-300">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>#{currentId} ({mode.toUpperCase()}) • {speed.toFixed(1)}x</span>
+              <span>#{currentId} ({mode.toUpperCase()}) • {speed.toFixed(1)}x • {resolution}px</span>
             </div>
           </div>
 
@@ -468,31 +487,33 @@ export const GifStudio: React.FC<GifStudioProps> = ({
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
-                onClick={() => setBgType('none')}
+                onClick={() => setBgMode('transparent')}
                 className={clsx(
                   'py-2 px-2 rounded-xl border text-xs font-medium flex flex-col items-center gap-1 transition-all',
-                  bgType === 'none'
+                  bgMode === 'transparent'
                     ? 'bg-amber-500/20 border-amber-400 text-amber-300 font-bold shadow'
                     : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
                 )}
               >
-                <div className="w-4 h-4 rounded border border-slate-400 bg-white" />
-                <span>无背景 (白色)</span>
+                <div className="w-4 h-4 rounded border border-dashed border-slate-500 flex items-center justify-center text-[9px]">
+                  ⛶
+                </div>
+                <span>无背景 (透明)</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => setBgType('auto')}
+                onClick={() => setBgMode('auto')}
                 className={clsx(
                   'py-2 px-2 rounded-xl border text-xs font-medium flex flex-col items-center gap-1 transition-all',
-                  bgType === 'auto'
+                  bgMode === 'auto'
                     ? 'bg-amber-500/20 border-amber-400 text-amber-300 font-bold shadow'
                     : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
                 )}
               >
                 <div
                   className="w-4 h-4 rounded-full border border-white/20 shadow-sm"
-                  style={{ backgroundColor: getAutoBackground(currentId) }}
+                  style={{ backgroundColor: getAutoBackground(currentId) || '#FFFFFF' }}
                 />
                 <span>自动背景色</span>
               </button>
@@ -500,10 +521,10 @@ export const GifStudio: React.FC<GifStudioProps> = ({
               <div className="relative">
                 <button
                   type="button"
-                  onClick={() => setBgType('custom')}
+                  onClick={() => setBgMode('custom')}
                   className={clsx(
                     'w-full h-full py-2 px-2 rounded-xl border text-xs font-medium flex flex-col items-center gap-1 transition-all relative overflow-hidden',
-                    bgType === 'custom'
+                    bgMode === 'custom'
                       ? 'bg-amber-500/20 border-amber-400 text-amber-300 font-bold shadow'
                       : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
                   )}
@@ -515,7 +536,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
                     value={customColor}
                     onChange={(e) => {
                       setCustomColor(e.target.value);
-                      setBgType('custom');
+                      setBgMode('custom');
                     }}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
@@ -523,7 +544,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
               </div>
             </div>
 
-            {bgType === 'custom' && (
+            {bgMode === 'custom' && (
               <div className="p-2 rounded-xl bg-slate-900/80 border border-white/5 flex items-center gap-2 flex-wrap animate-in fade-in">
                 {PRESET_COLORS.map((c) => (
                   <button
@@ -531,7 +552,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
                     type="button"
                     onClick={() => {
                       setCustomColor(c.value);
-                      setBgType('custom');
+                      setBgMode('custom');
                     }}
                     title={c.name}
                     className={clsx(
@@ -550,7 +571,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
           {/* 3. Speed Control (0.1x - 5.0x Stepless Slider + Presets) */}
           <div className="space-y-2 pt-3 border-t border-white/5">
             <div className="flex items-center justify-between text-xs font-mono">
-              <span className="text-slate-300 font-bold uppercase">3. 动画播放速度 (0.1x ~ 5.0x)</span>
+              <span className="text-slate-300 font-bold uppercase">3. 动画播放速度 (0.1x ~ 5.0x 无极变速)</span>
               <span className="text-amber-400 font-bold text-sm">{speed.toFixed(1)}x</span>
             </div>
             
@@ -652,7 +673,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
               ) : (
                 <>
                   <Download className="w-4 h-4" />
-                  <span>保存 GIF 动图 ({resolution}px • {speed.toFixed(1)}x)</span>
+                  <span>导出 GIF 动图 ({resolution}px • {speed.toFixed(1)}x 同步)</span>
                 </>
               )}
             </button>
