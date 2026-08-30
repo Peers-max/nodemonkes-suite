@@ -8,8 +8,9 @@ import { GifStudio } from './components/gif/GifStudio';
 import { DiyStudio } from './components/diy/DiyStudio';
 import { SantaStudio } from './components/santa/SantaStudio';
 import { ToastContainer } from './components/ui/Toast';
+import { LanguageProvider } from './utils/i18n';
 
-export const App: React.FC = () => {
+const AppContent: React.FC = () => {
   // Sync tab and ID with URL Search Params
   const getInitialTab = (): TabType => {
     const params = new URLSearchParams(window.location.search);
@@ -171,5 +172,13 @@ export const App: React.FC = () => {
       <ToastContainer toasts={toasts} onDismiss={removeToast} />
 
     </div>
+  );
+};
+
+export const App: React.FC = () => {
+  return (
+    <LanguageProvider>
+      <AppContent />
+    </LanguageProvider>
   );
 };

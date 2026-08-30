@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Gift, Download, Shuffle, Sparkles, Palette, Check, Layers } from 'lucide-react';
+import { Gift, Download, Shuffle, Sparkles, Palette } from 'lucide-react';
 import { clsx } from 'clsx';
 import type { Monke } from '../../types';
 import { getSantaMonkeImageUrl } from '../../utils/api';
 import { BODY_COLORS } from '../../utils/constants';
+import { useLanguage } from '../../utils/i18n';
 
 interface SantaStudioProps {
   initialMonkeId?: number;
@@ -26,11 +27,12 @@ export const SantaStudio: React.FC<SantaStudioProps> = ({
   onOpenInGif,
   onToast,
 }) => {
+  const { t } = useLanguage();
   const [monkeId, setMonkeId] = useState(initialMonkeId);
   const [bgMode, setBgMode] = useState<'transparent' | 'auto' | 'custom'>('auto');
   const [customColor, setCustomColor] = useState('#D32F2F');
   const [resolution, setResolution] = useState(560);
-  const [imageLoaded, setImageLoaded] = useState(false);
+  const [, setImageLoaded] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -108,13 +110,13 @@ export const SantaStudio: React.FC<SantaStudioProps> = ({
       <div className="text-center space-y-2">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-mono font-semibold">
           <Gift className="w-3.5 h-3.5" />
-          <span>SANTA MONKES LIMITED EDITION</span>
+          <span>{t.santaBadge}</span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-          10,000 Santa Hat NodeMonkes
+          {t.santaTitle}
         </h1>
         <p className="text-slate-400 text-sm max-w-xl mx-auto font-sans">
-          Festive holiday edition with pixel-perfect Santa hats. Customize background colors and download high-resolution holiday avatars.
+          {t.santaSub}
         </p>
       </div>
 
@@ -155,14 +157,14 @@ export const SantaStudio: React.FC<SantaStudioProps> = ({
                 if (!isNaN(v) && v >= 1 && v <= 10000) setMonkeId(v);
               }}
               className="flex-1 px-4 py-2.5 rounded-xl bg-slate-900/90 border border-white/10 text-sm font-mono text-white focus:outline-none focus:border-rose-500/60"
-              placeholder="Monke ID (1-10000)"
+              placeholder={t.santaSearchPlaceholder}
             />
             <button
               onClick={handleRandomMonke}
               className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 font-mono text-xs flex items-center gap-1.5 transition-all"
             >
               <Shuffle className="w-3.5 h-3.5 text-rose-400" />
-              <span>Random</span>
+              <span>{t.santaRandomBtn}</span>
             </button>
           </div>
 
@@ -171,7 +173,7 @@ export const SantaStudio: React.FC<SantaStudioProps> = ({
             className="w-full max-w-md flex items-center justify-center gap-2 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-rose-500 via-red-500 to-rose-600 hover:brightness-110 text-white font-bold text-sm shadow-xl shadow-rose-500/25 transition-all"
           >
             <Download className="w-4 h-4" />
-            <span>Download {resolution}px Festive Avatar</span>
+            <span>{t.santaDownloadBtn} ({resolution}px)</span>
           </button>
         </div>
 
@@ -196,7 +198,7 @@ export const SantaStudio: React.FC<SantaStudioProps> = ({
                 <div className="w-5 h-5 rounded border border-dashed border-slate-500 flex items-center justify-center text-[10px]">
                   ⛶
                 </div>
-                <span>Transparent</span>
+                <span>{t.diyBgNone}</span>
               </button>
 
               <button
@@ -209,7 +211,7 @@ export const SantaStudio: React.FC<SantaStudioProps> = ({
                 )}
               >
                 <div className="w-5 h-5 rounded-full border border-white/20" style={{ backgroundColor: autoBgColor }} />
-                <span>Auto Fur Color</span>
+                <span>{t.diyBgAuto}</span>
               </button>
 
               <button
@@ -222,7 +224,7 @@ export const SantaStudio: React.FC<SantaStudioProps> = ({
                 )}
               >
                 <Palette className="w-5 h-5 text-rose-400" />
-                <span>Holiday Palette</span>
+                <span>{t.diyBgCustom}</span>
               </button>
             </div>
 
@@ -288,7 +290,7 @@ export const SantaStudio: React.FC<SantaStudioProps> = ({
               className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 text-xs font-semibold transition-all"
             >
               <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>Animate this Monke in GIF Studio</span>
+              <span>{t.actionMakeGif}</span>
             </button>
           </div>
 

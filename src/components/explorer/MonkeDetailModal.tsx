@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { X, Copy, Check, Sparkles, Gift, ExternalLink, ShieldCheck, Layers, Eye, Disc } from 'lucide-react';
+import { X, Copy, Check, Sparkles, Gift, ExternalLink } from 'lucide-react';
 import type { Monke, ColorInfo } from '../../types';
 import { getMonkeImageUrl, getImageColors } from '../../utils/api';
 import { TraitBadge } from '../ui/Badge';
+import { useLanguage } from '../../utils/i18n';
 
 interface MonkeDetailModalProps {
   monke: Monke | null;
@@ -19,6 +20,7 @@ export const MonkeDetailModal: React.FC<MonkeDetailModalProps> = ({
   onOpenInSanta,
   onCopyPubkey,
 }) => {
+  const { t } = useLanguage();
   const [colors, setColors] = useState<ColorInfo[]>([]);
   const [copied, setCopied] = useState(false);
 
@@ -84,18 +86,18 @@ export const MonkeDetailModal: React.FC<MonkeDetailModalProps> = ({
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 font-mono text-xs">
                 <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5">
-                  <span className="text-slate-500 block text-[10px]">INSCRIPTION</span>
+                  <span className="text-slate-500 block text-[10px] uppercase">{t.modalInscription}</span>
                   <span className="text-white font-semibold text-sm">#{monke.inscription}</span>
                 </div>
                 <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5">
-                  <span className="text-slate-500 block text-[10px]">TOTAL TRAITS</span>
+                  <span className="text-slate-500 block text-[10px] uppercase">TOTAL TRAITS</span>
                   <span className="text-white font-semibold text-sm">{attrs.Count || 4} Traits</span>
                 </div>
               </div>
 
               {/* Color Palette */}
               <div className="space-y-1.5">
-                <span className="text-xs text-slate-400 font-medium block">Extracted Palette ({colors.length} Colors)</span>
+                <span className="text-xs text-slate-400 font-medium block">{t.modalColorPalette} ({colors.length})</span>
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {colors.slice(0, 12).map((c, i) => (
                     <div
@@ -118,7 +120,7 @@ export const MonkeDetailModal: React.FC<MonkeDetailModalProps> = ({
                   className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-semibold bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 hover:brightness-110 shadow-lg shadow-orange-500/20 transition-all"
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span>Make Animated GIF</span>
+                  <span>{t.actionMakeGif}</span>
                 </button>
                 <button
                   onClick={() => {
@@ -128,7 +130,7 @@ export const MonkeDetailModal: React.FC<MonkeDetailModalProps> = ({
                   className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl text-xs font-semibold bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 transition-all"
                 >
                   <Gift className="w-3.5 h-3.5 text-rose-400" />
-                  <span>View in Santa Edition</span>
+                  <span>{t.actionSanta}</span>
                 </button>
               </div>
 
@@ -138,7 +140,7 @@ export const MonkeDetailModal: React.FC<MonkeDetailModalProps> = ({
           {/* Traits Section */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">
-              Traits & Rarity Breakdown
+              {t.modalTraits}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <TraitBadge label="Body" value={attrs.Body} percentage={attrs.BodyCount ? (attrs.BodyCount / 10000) * 100 : undefined} />
@@ -148,16 +150,39 @@ export const MonkeDetailModal: React.FC<MonkeDetailModalProps> = ({
             </div>
           </div>
 
+          {/* Marketplace Trade Links */}
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <a
+              href="https://www.satflow.com/ordinals/nodemonkes"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-white/10 text-xs font-semibold transition-all hover:border-amber-500/40"
+            >
+              <span>SatFlow</span>
+              <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
+            </a>
+
+            <a
+              href="https://ord.net/collection/nodemonkes"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-white/10 text-xs font-semibold transition-all hover:border-amber-500/40"
+            >
+              <span>Ord.net</span>
+              <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
+            </a>
+          </div>
+
           {/* Script PubKey */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs text-slate-400">
-              <span className="font-mono uppercase">Script PubKey (On-Chain Proof)</span>
+              <span className="font-mono uppercase">{t.modalOwner}</span>
               <button
                 onClick={handleCopy}
                 className="flex items-center gap-1 text-amber-400 hover:text-amber-300 font-mono text-[11px]"
               >
                 {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                <span>{copied ? 'Copied' : 'Copy Full Key'}</span>
+                <span>{copied ? t.modalCopySuccess : 'Copy'}</span>
               </button>
             </div>
             <div 

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Paintbrush, Download, Shuffle, RefreshCw, Check, Palette } from 'lucide-react';
+import { Paintbrush, Download, Shuffle, RefreshCw, Check } from 'lucide-react';
 import { clsx } from 'clsx';
 import { BODY_COLORS, PRESET_COLORS } from '../../utils/constants';
+import { useLanguage } from '../../utils/i18n';
 
 interface DiyStudioProps {
   onToast: (title: string, desc?: string, type?: 'success' | 'info' | 'error') => void;
@@ -46,10 +47,10 @@ const SERIES_BUTTONS: { id: SeriesType; label: string }[] = [
 ];
 
 const RESOLUTION_OPTIONS = [
-  { label: '512px', value: 512, desc: '社交头像' },
-  { label: '1008px', value: 1008, desc: '原版高清' },
-  { label: '2048px (2K)', value: 2048, desc: '2K 超清' },
-  { label: '4096px (4K)', value: 4096, desc: '4K 极清' },
+  { label: '512px', value: 512 },
+  { label: '1008px', value: 1008 },
+  { label: '2048px (2K)', value: 2048 },
+  { label: '4096px (4K)', value: 4096 },
 ];
 
 // Helper to load layer image for canvas export with cache-buster
@@ -64,6 +65,7 @@ function loadCanvasImage(url: string): Promise<HTMLImageElement> {
 }
 
 export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
+  const { t } = useLanguage();
   const [activeSeries, setActiveSeries] = useState<SeriesType>('normal');
   const [activeCategory, setActiveCategory] = useState<CategoryType>('Body');
 
@@ -110,7 +112,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
     return 'transparent';
   }, [bgMode, customColor, selectedParts.Body]);
 
-  // 1. Fetch Metadata and Build Component Lists (Ported 1:1 from original r2_content.html)
+  // 1. Fetch Metadata and Build Component Lists
   useEffect(() => {
     let mounted = true;
 
@@ -220,7 +222,6 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
       setActiveCategory('Body');
     }
 
-    // Reset selected parts for this series
     setSelectedParts({
       Body: '',
       Earring: '',
@@ -229,7 +230,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
     });
   };
 
-  // Randomize (Ported 1:1 from original randomize function)
+  // Randomize
   const randomize = () => {
     const newParts: Record<CategoryType, string> = {
       Body: '',
@@ -259,7 +260,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
     setSelectedParts(newParts);
   };
 
-  // Save Avatar (with selectable resolution up to 4K and bulletproof layer rendering)
+  // Save Avatar
   const saveAvatar = async () => {
     setSaving(true);
     try {
@@ -298,7 +299,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
         document.body.removeChild(link);
         setTimeout(() => URL.revokeObjectURL(url), 100);
 
-        onToast('头像保存成功！', `已下载 ${size} × ${size} 高清无损 PNG`, 'success');
+        onToast(t.diySuccess, `${t.diySuccessDesc} (${size} × ${size})`, 'success');
         setSaving(false);
       }, 'image/png');
     } catch (err: any) {
@@ -317,28 +318,26 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
       <div className="text-center space-y-1.5">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono font-semibold">
           <Paintbrush className="w-3.5 h-3.5" />
-          <span>OFFICIAL NODEMONKES DIY AVATAR CREATOR</span>
+          <span>{t.diyBadge}</span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-          NodeMonkes DIY 头像工坊
+          {t.diyTitle}
         </h1>
         <p className="text-slate-400 text-sm max-w-xl mx-auto font-sans">
-          100% 还原原版全部 5 大系列真实图层，支持身体、耳环、眼睛、头部自由拼装与最高 4K 极清导出。
+          {t.diySub}
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* Left Side: Original 4-Layer DOM Preview & Action Buttons */}
+        {/* Left Side: 4-Layer DOM Preview & Action Buttons */}
         <div className="lg:col-span-5 space-y-4">
           <div className="glass-panel p-5 rounded-3xl border border-white/10 shadow-2xl space-y-4">
             
-            {/* ⭐️ EXACT Original Preview Container with 4 stacked <img> tags (Native 0-CORS) */}
             <div 
               className="relative w-full aspect-square rounded-2xl border border-white/10 overflow-hidden shadow-inner flex items-center justify-center transition-colors"
               style={{ backgroundColor: currentBgColor }}
             >
-              {/* Checkerboard Pattern for transparent bg */}
               {currentBgColor === 'transparent' && (
                 <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:12px_12px]" />
               )}
@@ -382,7 +381,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
               {loading && (
                 <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2 z-50">
                   <RefreshCw className="w-6 h-6 text-emerald-400 animate-spin" />
-                  <span className="text-xs font-mono text-slate-300">正在加载官方组件...</span>
+                  <span className="text-xs font-mono text-slate-300">{t.diyLoadingComponents}</span>
                 </div>
               )}
 
@@ -402,7 +401,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
                   className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 font-semibold text-xs transition-all shadow-md active:scale-95"
                 >
                   <Shuffle className="w-4 h-4 text-emerald-400" />
-                  <span>🎲 随机搭配</span>
+                  <span>{t.diyRandomBtn}</span>
                 </button>
 
                 <button
@@ -412,13 +411,13 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
                   className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
                 >
                   {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                  <span>{saving ? '正在保存...' : `💾 保存头像 (${saveResolution}px)`}</span>
+                  <span>{saving ? t.diySavingBtn : `${t.diySaveBtn} (${saveResolution}px)`}</span>
                 </button>
               </div>
 
               {/* Resolution Options Selector */}
               <div className="flex items-center justify-between gap-1 p-1 bg-slate-900/80 rounded-xl border border-white/5 text-[11px] font-mono">
-                <span className="text-slate-400 px-2">导出分辨率:</span>
+                <span className="text-slate-400 px-2">{t.diyResTitle}</span>
                 <div className="flex items-center gap-1">
                   {RESOLUTION_OPTIONS.map((r) => (
                     <button
@@ -442,7 +441,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
             {/* Background Selector Buttons */}
             <div className="space-y-2 pt-3 border-t border-white/5">
               <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">
-                背景底色配置
+                {t.diyBgTitle}
               </span>
               <div className="grid grid-cols-4 gap-1.5">
                 <button
@@ -455,7 +454,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
                       : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
                   )}
                 >
-                  无背景
+                  {t.diyBgNone}
                 </button>
 
                 <button
@@ -468,7 +467,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
                       : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
                   )}
                 >
-                  橙色背景
+                  {t.diyBgOrange}
                 </button>
 
                 <button
@@ -481,7 +480,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
                       : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
                   )}
                 >
-                  自动背景
+                  {t.diyBgAuto}
                 </button>
 
                 <div className="relative">
@@ -495,7 +494,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
                         : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
                     )}
                   >
-                    <span>自选颜色</span>
+                    <span>{t.diyBgCustom}</span>
                     <input
                       type="color"
                       value={customColor}
@@ -536,7 +535,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
             {/* Series Buttons */}
             <div className="space-y-2 pt-3 border-t border-white/5">
               <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">
-                系列切换 (Series)
+                {t.diySeriesTitle}
               </span>
               <div className="grid grid-cols-5 gap-1.5">
                 {SERIES_BUTTONS.map((s) => (
@@ -590,15 +589,15 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
             })}
           </div>
 
-          {/* Parts Grid (Ported 1:1 from original updatePartsGrid with native clean img) */}
+          {/* Parts Grid */}
           <div className="flex-1 overflow-y-auto max-h-[480px] pr-1">
             {!SERIES_COMPONENTS[activeSeries].includes(activeCategory) ? (
               <div className="flex items-center justify-center h-64 text-slate-500 text-sm font-mono">
-                {activeSeries.toUpperCase()} 系列不支持 {activeCategory} 组件
+                {activeSeries.toUpperCase()} {t.diyNotSupported}
               </div>
             ) : currentParts.length === 0 ? (
               <div className="flex items-center justify-center h-64 text-slate-500 text-sm font-mono">
-                正在加载组件...
+                {t.diyLoadingComponents}
               </div>
             ) : (
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 p-1">

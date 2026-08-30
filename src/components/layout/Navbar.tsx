@@ -1,7 +1,8 @@
 import React from 'react';
-import { Search, Sparkles, Image as ImageIcon, Paintbrush, Gift, Github, ExternalLink } from 'lucide-react';
+import { Search, Sparkles, Paintbrush, Gift, Globe } from 'lucide-react';
 import { clsx } from 'clsx';
 import type { TabType } from '../../types';
+import { useLanguage } from '../../utils/i18n';
 
 interface NavbarProps {
   activeTab: TabType;
@@ -13,15 +14,19 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   onTabChange,
-  totalMonkes = 10000,
-  onQuickSearchClick,
 }) => {
+  const { lang, setLang, t } = useLanguage();
+
   const tabs = [
-    { id: 'explorer' as TabType, label: 'Explorer', icon: Search, badge: '10K' },
-    { id: 'gif' as TabType, label: 'Make GIF', icon: Sparkles, badge: 'Studio' },
-    { id: 'diy' as TabType, label: 'DIY Studio', icon: Paintbrush, badge: 'Creator' },
-    { id: 'santa' as TabType, label: 'Santa Monkes', icon: Gift, badge: 'Special' },
+    { id: 'explorer' as TabType, label: t.tabExplorer, icon: Search, badge: '10K' },
+    { id: 'gif' as TabType, label: t.tabGif, icon: Sparkles, badge: 'Studio' },
+    { id: 'diy' as TabType, label: t.tabDiy, icon: Paintbrush, badge: 'Creator' },
+    { id: 'santa' as TabType, label: t.tabSanta, icon: Gift, badge: 'Special' },
   ];
+
+  const toggleLanguage = () => {
+    setLang(lang === 'zh' ? 'en' : 'zh');
+  };
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-white/5 bg-[#0A0D14]/85 backdrop-blur-xl transition-all">
@@ -49,7 +54,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </span>
             </div>
             <span className="text-[11px] text-slate-400 font-mono hidden sm:inline-block">
-              Bitcoin Ordinals • 10,000 Monkes
+              {t.brandSub}
             </span>
           </div>
         </div>
@@ -82,17 +87,17 @@ export const Navbar: React.FC<NavbarProps> = ({
           })}
         </nav>
 
-        {/* Right: Quick Links */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <a
-            href="https://github.com/Peers-max/nodemonkes-suite"
-            target="_blank"
-            rel="noreferrer"
-            title="GitHub Repository"
-            className="p-2 rounded-xl text-slate-400 hover:text-white bg-slate-900/60 hover:bg-slate-800 border border-white/5 transition-all"
+        {/* Right: Language Switcher Button (No public GitHub button) */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={toggleLanguage}
+            title={lang === 'zh' ? 'Switch to English' : '切换为中文'}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold text-slate-300 hover:text-white bg-slate-900/80 hover:bg-slate-800 border border-white/10 transition-all shadow-sm active:scale-95"
           >
-            <Github className="w-4 h-4" />
-          </a>
+            <Globe className="w-3.5 h-3.5 text-amber-400" />
+            <span>{lang === 'zh' ? 'EN' : '中文'}</span>
+          </button>
         </div>
 
       </div>
