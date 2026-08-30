@@ -371,23 +371,23 @@ export const GifStudio: React.FC<GifStudioProps> = ({
   const modeLabel = mode === 'normal' ? (lang === 'zh' ? '普通版' : 'NORMAL') : (lang === 'zh' ? '圣诞版' : 'SANTA');
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-5 sm:space-y-6">
       
       {/* Header */}
-      <div className="text-center space-y-1.5">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-mono font-semibold">
+      <div className="text-center space-y-1.5 px-2">
+        <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-mono font-semibold">
           <Sparkles className="w-3.5 h-3.5" />
           <span>{t.gifBadge}</span>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight">
           {t.gifTitle}
         </h1>
-        <p className="text-slate-400 text-sm max-w-xl mx-auto font-sans">
+        <p className="text-slate-400 text-xs sm:text-sm max-w-xl mx-auto font-sans">
           {t.gifSub}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
         
         {/* Left Side: Preview Canvas */}
         <div className="lg:col-span-6 flex flex-col items-center gap-3">
@@ -403,31 +403,31 @@ export const GifStudio: React.FC<GifStudioProps> = ({
               className="w-full h-full object-contain pixelated relative z-10"
             />
 
-            <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-[11px] font-mono text-slate-300">
+            <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-[10px] sm:text-[11px] font-mono text-slate-300">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span>#{currentId} ({modeLabel}) • {speed.toFixed(1)}x • {resolution}px</span>
             </div>
           </div>
 
           {/* Search ID Form */}
-          <form onSubmit={handleSearchSubmit} className="w-full max-w-[460px] flex items-center gap-2">
+          <form onSubmit={handleSearchSubmit} className="w-full max-w-[460px] flex items-center gap-1.5 sm:gap-2">
             <input
               type="text"
               value={idInput}
               onChange={(e) => setIdInput(e.target.value)}
               placeholder={t.gifSearchPlaceholder}
-              className="flex-1 px-4 py-2 rounded-xl bg-slate-900/90 border border-white/10 text-xs font-mono text-white focus:outline-none focus:border-amber-500"
+              className="flex-1 px-3 sm:px-4 py-2 rounded-xl bg-slate-900/90 border border-white/10 text-xs font-mono text-white focus:outline-none focus:border-amber-500"
             />
             <button
               type="submit"
-              className="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs hover:bg-amber-400 transition-all"
+              className="px-3.5 sm:px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs hover:bg-amber-400 transition-all shrink-0 active:scale-95"
             >
               {t.gifConfirm}
             </button>
             <button
               type="button"
               onClick={handleRandom}
-              className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 text-xs flex items-center gap-1 font-mono transition-all"
+              className="px-3 sm:px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 text-xs flex items-center gap-1 font-mono transition-all shrink-0 active:scale-95"
             >
               <Shuffle className="w-3.5 h-3.5 text-amber-400" />
               <span>{t.gifRandom}</span>
@@ -440,7 +440,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
         </div>
 
         {/* Right Side: Controls */}
-        <div className="lg:col-span-6 space-y-4 glass-panel p-5 rounded-3xl border border-white/10 shadow-xl">
+        <div className="lg:col-span-6 space-y-4 glass-panel p-4 sm:p-5 rounded-3xl border border-white/10 shadow-xl">
           
           {/* 1. Mode Switcher */}
           <div className="space-y-2">
@@ -488,7 +488,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
                 type="button"
                 onClick={() => setBgMode('transparent')}
                 className={clsx(
-                  'py-2 px-2 rounded-xl border text-xs font-medium flex flex-col items-center gap-1 transition-all',
+                  'py-2 px-1 sm:px-2 rounded-xl border text-xs font-medium flex flex-col items-center gap-1 transition-all',
                   bgMode === 'transparent'
                     ? 'bg-amber-500/20 border-amber-400 text-amber-300 font-bold shadow'
                     : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
@@ -497,14 +497,14 @@ export const GifStudio: React.FC<GifStudioProps> = ({
                 <div className="w-4 h-4 rounded border border-dashed border-slate-500 flex items-center justify-center text-[9px]">
                   ⛶
                 </div>
-                <span>{t.gifBgNone}</span>
+                <span className="text-[11px] sm:text-xs truncate max-w-full">{t.gifBgNone}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setBgMode('auto')}
                 className={clsx(
-                  'py-2 px-2 rounded-xl border text-xs font-medium flex flex-col items-center gap-1 transition-all',
+                  'py-2 px-1 sm:px-2 rounded-xl border text-xs font-medium flex flex-col items-center gap-1 transition-all',
                   bgMode === 'auto'
                     ? 'bg-amber-500/20 border-amber-400 text-amber-300 font-bold shadow'
                     : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
@@ -514,7 +514,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
                   className="w-4 h-4 rounded-full border border-white/20 shadow-sm"
                   style={{ backgroundColor: getAutoBackground(currentId) || '#FFFFFF' }}
                 />
-                <span>{t.gifBgAuto}</span>
+                <span className="text-[11px] sm:text-xs truncate max-w-full">{t.gifBgAuto}</span>
               </button>
 
               <div className="relative">
@@ -522,14 +522,14 @@ export const GifStudio: React.FC<GifStudioProps> = ({
                   type="button"
                   onClick={() => setBgMode('custom')}
                   className={clsx(
-                    'w-full h-full py-2 px-2 rounded-xl border text-xs font-medium flex flex-col items-center gap-1 transition-all relative overflow-hidden',
+                    'w-full h-full py-2 px-1 sm:px-2 rounded-xl border text-xs font-medium flex flex-col items-center gap-1 transition-all relative overflow-hidden',
                     bgMode === 'custom'
                       ? 'bg-amber-500/20 border-amber-400 text-amber-300 font-bold shadow'
                       : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
                   )}
                 >
                   <Palette className="w-4 h-4 text-purple-400" />
-                  <span>{t.gifBgCustom}</span>
+                  <span className="text-[11px] sm:text-xs truncate max-w-full">{t.gifBgCustom}</span>
                   <input
                     type="color"
                     value={customColor}
@@ -584,7 +584,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
               className="w-full accent-amber-500 cursor-pointer h-2 bg-slate-800 rounded-lg"
             />
 
-            <div className="grid grid-cols-5 gap-1.5 pt-1">
+            <div className="grid grid-cols-5 gap-1 pt-1">
               {[
                 { label: t.gifSpeedSlow, val: 0.5 },
                 { label: t.gifSpeedNormal, val: 1.0 },
@@ -597,7 +597,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
                   type="button"
                   onClick={() => setSpeed(s.val)}
                   className={clsx(
-                    'py-1 rounded-lg text-[11px] font-mono transition-all',
+                    'py-1.5 px-0.5 sm:px-1 rounded-lg text-[10px] sm:text-[11px] font-mono transition-all text-center truncate',
                     Math.abs(speed - s.val) < 0.05
                       ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 shadow'
                       : 'bg-slate-900/60 text-slate-400 border border-white/5 hover:text-white'
@@ -626,7 +626,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
               className="w-full accent-amber-500 cursor-pointer h-2 bg-slate-800 rounded-lg"
             />
 
-            <div className="grid grid-cols-5 gap-1.5 pt-1">
+            <div className="grid grid-cols-5 gap-1 pt-1">
               {[
                 { label: '200px', val: 200 },
                 { label: '400px', val: 400 },
@@ -639,7 +639,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
                   type="button"
                   onClick={() => setResolution(r.val)}
                   className={clsx(
-                    'py-1 rounded-lg text-[11px] font-mono transition-all',
+                    'py-1.5 px-0.5 sm:px-1 rounded-lg text-[10px] sm:text-[11px] font-mono transition-all text-center',
                     resolution === r.val
                       ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 shadow'
                       : 'bg-slate-900/60 text-slate-400 border border-white/5 hover:text-white'
