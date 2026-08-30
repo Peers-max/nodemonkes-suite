@@ -297,14 +297,16 @@ export const GifStudio: React.FC<GifStudioProps> = ({
         GIFConstructor = (window as any).GIF;
       }
 
+      const effectiveBg = bgColor || '#FFFFFF';
+
       const gif = new GIFConstructor({
         workers: 2,
         quality: 10,
         width: resolution,
         height: resolution,
         dither: false,
-        transparent: bgColor ? null : 0x00000000,
-        background: bgColor || '#00000000',
+        transparent: null,
+        background: effectiveBg,
         repeat: 0,
         workerScript: './gif.worker.js',
       });
@@ -335,7 +337,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
 
       for (let i = 0; i < numFrames; i++) {
         const p = i / numFrames;
-        drawOriginalFrame(ctx, upperImg, lowerImg, p, resolution, bgColor);
+        drawOriginalFrame(ctx, upperImg, lowerImg, p, resolution, effectiveBg);
 
         const imageData = ctx.getImageData(0, 0, resolution, resolution);
         reduceColorDepth(imageData.data);
