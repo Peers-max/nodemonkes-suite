@@ -346,8 +346,7 @@ export const MonkesExplorer: React.FC<MonkesExplorerProps> = ({
                 <tr className="border-b border-white/10 bg-white/[0.03] text-slate-400 uppercase tracking-wider text-[11px]">
                   <th className="py-3.5 px-4 font-semibold"># ID</th>
                   <th className="py-3.5 px-4 font-semibold">PREVIEW</th>
-                  <th className="py-3.5 px-4 font-semibold">BODY</th>
-                  <th className="py-3.5 px-4 font-semibold">TRAITS</th>
+                  <th className="py-3.5 px-4 font-semibold">TRAITS & RARITY BREAKDOWN</th>
                   <th className="py-3.5 px-4 font-semibold">RANK</th>
                   <th className="py-3.5 px-4 font-semibold">INSCRIPTION</th>
                   <th className="py-3.5 px-4 font-semibold">BLOCK</th>
@@ -378,14 +377,28 @@ export const MonkesExplorer: React.FC<MonkesExplorerProps> = ({
                           />
                         </div>
                       </td>
-                      <td className="py-4 sm:py-5 px-4 text-slate-100 font-sans font-bold text-sm sm:text-base">
-                        {attrs.Body}
-                      </td>
                       <td className="py-4 sm:py-5 px-4">
-                        <div className="flex items-center gap-1.5 flex-wrap max-w-sm">
-                          {attrs.Head && <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-slate-200 text-xs font-medium">{attrs.Head}</span>}
-                          {attrs.Eyes && <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-slate-200 text-xs font-medium">{attrs.Eyes}</span>}
-                          {attrs.Earring && <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-slate-200 text-xs font-medium">{attrs.Earring}</span>}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-w-md">
+                          <TraitBadge
+                            label="Body"
+                            value={attrs.Body}
+                            percentage={attrs.BodyCount ? (attrs.BodyCount / 10000) * 100 : undefined}
+                          />
+                          <TraitBadge
+                            label="Head"
+                            value={attrs.Head || 'None'}
+                            percentage={attrs.HeadCount ? (attrs.HeadCount / 10000) * 100 : undefined}
+                          />
+                          <TraitBadge
+                            label="Eyes"
+                            value={attrs.Eyes || 'None'}
+                            percentage={attrs.EyesCount ? (attrs.EyesCount / 10000) * 100 : undefined}
+                          />
+                          <TraitBadge
+                            label="Earring"
+                            value={attrs.Earring || 'None'}
+                            percentage={attrs.EarringCount ? (attrs.EarringCount / 10000) * 100 : undefined}
+                          />
                         </div>
                       </td>
                       <td className="py-4 sm:py-5 px-4">
