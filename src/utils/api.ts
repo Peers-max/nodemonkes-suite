@@ -10,29 +10,6 @@ export async function fetchMonkes(): Promise<Monke[]> {
   }
 
   try {
-    // 1. Try Browser CacheStorage for instant 0ms load
-    if (typeof window !== 'undefined' && 'caches' in window) {
-      try {
-        const cache = await caches.open('nodemonkes-metadata-v1');
-        const cachedResponse = await cache.match(METADATA_URL);
-        if (cachedResponse) {
-          const data = await cachedResponse.json();
-          const list: Monke[] = Array.isArray(data) ? data : data.nodemonkes || [];
-          if (list.length > 0) {
-            cachedMonkes = list;
-            // Background refresh cache if needed
-            fetch(METADATA_URL).then((res) => {
-              if (res.ok) cache.put(METADATA_URL, res);
-            }).catch(() => {});
-            return list;
-          }
-        }
-      } catch (cacheErr) {
-        console.warn('CacheStorage read warning:', cacheErr);
-      }
-    }
-
-    // 2. Network Fetch if not cached
     const response = await fetch(METADATA_URL, {
       method: 'GET',
       headers: {
@@ -42,14 +19,6 @@ export async function fetchMonkes(): Promise<Monke[]> {
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    // Clone response for caching
-    const responseClone = response.clone();
-    if (typeof window !== 'undefined' && 'caches' in window) {
-      caches.open('nodemonkes-metadata-v1').then((cache) => {
-        cache.put(METADATA_URL, responseClone);
-      }).catch(() => {});
     }
 
     const data = await response.json();
