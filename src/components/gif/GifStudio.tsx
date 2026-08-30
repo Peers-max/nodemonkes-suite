@@ -119,7 +119,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
   monkes,
   onToast,
 }) => {
-  const { t } = useLanguage();
+  const { lang, t } = useLanguage();
   const [idInput, setIdInput] = useState(String(initialMonkeId));
   const [currentId, setCurrentId] = useState(initialMonkeId);
   const [mode, setMode] = useState<'normal' | 'santa'>('normal');
@@ -172,11 +172,11 @@ export const GifStudio: React.FC<GifStudioProps> = ({
 
   // Load preview for given ID and mode
   const loadPreview = useCallback(async (monkeId: number, m: 'normal' | 'santa') => {
-    setStatusText(`Loading #${monkeId}...`);
+    setStatusText(lang === 'zh' ? `正在加载 #${monkeId}...` : `Loading #${monkeId}...`);
     const urls = getImageUrls(monkeId, m);
     setImages(urls);
     setCurrentId(monkeId);
-  }, []);
+  }, [lang]);
 
   // Initial load
   useEffect(() => {
@@ -202,7 +202,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
         if (animationRef.current) cancelAnimationFrame(animationRef.current);
         progressRef.current = 0;
         lastTimeRef.current = 0;
-        setStatusText(`Ready (#${currentId})`);
+        setStatusText(`${t.gifReady} (#${currentId})`);
         animate();
       }
     };
@@ -210,14 +210,14 @@ export const GifStudio: React.FC<GifStudioProps> = ({
     const upperImg = new Image();
     upperImg.crossOrigin = 'anonymous';
     upperImg.onload = onImageLoad;
-    upperImg.onerror = () => setStatusText(`Error loading upper #${currentId}`);
+    upperImg.onerror = () => setStatusText(lang === 'zh' ? `加载上半身失败: #${currentId}` : `Error loading upper #${currentId}`);
     upperImg.src = images.upper;
     upperImgRef.current = upperImg;
 
     const lowerImg = new Image();
     lowerImg.crossOrigin = 'anonymous';
     lowerImg.onload = onImageLoad;
-    lowerImg.onerror = () => setStatusText(`Error loading lower #${currentId}`);
+    lowerImg.onerror = () => setStatusText(lang === 'zh' ? `加载下半身失败: #${currentId}` : `Error loading lower #${currentId}`);
     lowerImg.src = images.lower;
     lowerImgRef.current = lowerImg;
 
@@ -258,7 +258,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
     return () => {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
-  }, [images, bgColor, resolution, speed, currentId]);
+  }, [images, bgColor, resolution, speed, currentId, t.gifReady, lang]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -266,7 +266,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
     if (!isNaN(val) && val >= 1 && val <= 10000) {
       loadPreview(val, mode);
     } else {
-      onToast('Error', 'Please enter a valid ID (1 - 10000)', 'error');
+      onToast(t.gifErrorInput, t.gifErrorInputDesc, 'error');
     }
   };
 
@@ -362,11 +362,13 @@ export const GifStudio: React.FC<GifStudioProps> = ({
       gif.render();
     } catch (err: any) {
       console.error('GIF export error:', err);
-      onToast('Export failed', err.message || 'Please retry', 'error');
+      onToast(lang === 'zh' ? '导出失败' : 'Export failed', err.message || (lang === 'zh' ? '请重试' : 'Please retry'), 'error');
       setProgress(0);
       setIsGenerating(false);
     }
   };
+
+  const modeLabel = mode === 'normal' ? (lang === 'zh' ? '普通版' : 'NORMAL') : (lang === 'zh' ? '圣诞版' : 'SANTA');
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -403,7 +405,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
 
             <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-[11px] font-mono text-slate-300">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>#{currentId} ({mode.toUpperCase()}) • {speed.toFixed(1)}x • {resolution}px</span>
+              <span>#{currentId} ({modeLabel}) • {speed.toFixed(1)}x • {resolution}px</span>
             </div>
           </div>
 

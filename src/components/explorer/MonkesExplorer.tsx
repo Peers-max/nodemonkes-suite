@@ -189,8 +189,8 @@ export const MonkesExplorer: React.FC<MonkesExplorerProps> = ({
               >
                 <option value="rank" className="bg-slate-900">{t.sortRank}</option>
                 <option value="id" className="bg-slate-900">{t.sortId}</option>
-                <option value="inscription" className="bg-slate-900">Sort by Inscription</option>
-                <option value="block" className="bg-slate-900">Sort by Block</option>
+                <option value="inscription" className="bg-slate-900">{t.sortInscription}</option>
+                <option value="block" className="bg-slate-900">{t.sortBlock}</option>
               </select>
               <button
                 onClick={() => setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'))}
@@ -314,29 +314,7 @@ export const MonkesExplorer: React.FC<MonkesExplorerProps> = ({
                     </div>
                   )}
 
-                  {/* Hover Quick Action Buttons */}
-                  <div className="absolute inset-0 bg-black/70 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenInGif(monke.id);
-                      }}
-                      title={t.actionMakeGif}
-                      className="p-2 rounded-xl bg-amber-500 text-slate-950 hover:scale-110 transition-transform shadow-lg"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenInSanta(monke.id);
-                      }}
-                      title={t.actionSanta}
-                      className="p-2 rounded-xl bg-rose-500 text-white hover:scale-110 transition-transform shadow-lg"
-                    >
-                      <Gift className="w-4 h-4" />
-                    </button>
-                  </div>
+
                 </div>
 
                 {/* ID & Inscription Info */}

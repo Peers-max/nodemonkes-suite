@@ -38,12 +38,12 @@ const SERIES_COMPONENTS: Record<SeriesType, CategoryType[]> = {
   peer: ['Body', 'Eyes'],
 };
 
-const SERIES_BUTTONS: { id: SeriesType; label: string }[] = [
-  { id: 'normal', label: 'Normal' },
-  { id: 'dog', label: 'Dog' },
-  { id: 'block', label: 'Block' },
-  { id: 'rabbit', label: 'Rabbit' },
-  { id: 'peer', label: 'Peer' },
+const SERIES_BUTTONS: { id: SeriesType; zh: string; en: string }[] = [
+  { id: 'normal', zh: '普通', en: 'Normal' },
+  { id: 'dog', zh: '狗猴', en: 'Dog' },
+  { id: 'block', zh: '方块', en: 'Block' },
+  { id: 'rabbit', zh: '兔猴', en: 'Rabbit' },
+  { id: 'peer', zh: '同行', en: 'Peer' },
 ];
 
 const RESOLUTION_OPTIONS = [
@@ -65,7 +65,7 @@ function loadCanvasImage(url: string): Promise<HTMLImageElement> {
 }
 
 export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
-  const { t } = useLanguage();
+  const { lang, t } = useLanguage();
   const [activeSeries, setActiveSeries] = useState<SeriesType>('normal');
   const [activeCategory, setActiveCategory] = useState<CategoryType>('Body');
 
@@ -304,12 +304,21 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
       }, 'image/png');
     } catch (err: any) {
       console.error('Save failed:', err);
-      onToast('Save Failed', err.message || 'Please retry', 'error');
+      onToast(t.diySaveFailed, err.message || (lang === 'zh' ? '请重试' : 'Please retry'), 'error');
       setSaving(false);
     }
   };
 
   const currentParts = components[activeSeries][activeCategory] || [];
+  const currentSeriesObj = SERIES_BUTTONS.find((s) => s.id === activeSeries);
+  const activeSeriesLabel = currentSeriesObj ? (lang === 'zh' ? currentSeriesObj.zh : currentSeriesObj.en) : activeSeries;
+
+  const getCategoryLabel = (cat: CategoryType) => {
+    if (cat === 'Body') return t.diyCatBody;
+    if (cat === 'Earring') return t.diyCatEarring;
+    if (cat === 'Eyes') return t.diyCatEyes;
+    return t.diyCatHead;
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -389,7 +398,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
 
               <div className="absolute top-3 left-3 z-50 flex items-center gap-1.5 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-[11px] font-mono text-slate-300">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>{activeSeries.toUpperCase()} SERIES</span>
+                <span>{activeSeriesLabel} {t.diySeriesSuffix}</span>
               </div>
             </div>
 
@@ -552,7 +561,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
                         : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
                     )}
                   >
-                    {s.label}
+                    {lang === 'zh' ? s.zh : s.en}
                   </button>
                 ))}
               </div>
@@ -584,8 +593,8 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
                       : 'text-slate-400 hover:text-white hover:bg-white/5'
                   )}
                 >
-                  <span>{cat}</span>
-                  {!isSupported && <span className="text-[10px] ml-1 opacity-60">(N/A)</span>}
+                  <span>{getCategoryLabel(cat)}</span>
+                  {!isSupported && <span className="text-[10px] ml-1 opacity-60">({lang === 'zh' ? '无' : 'N/A'})</span>}
                 </button>
               );
             })}
@@ -595,7 +604,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
           <div className="flex-1 overflow-y-auto max-h-[480px] pr-1">
             {!SERIES_COMPONENTS[activeSeries].includes(activeCategory) ? (
               <div className="flex items-center justify-center h-64 text-slate-500 text-sm font-mono">
-                {activeSeries.toUpperCase()} {t.diyNotSupported}
+                {activeSeriesLabel} {t.diyNotSupported}
               </div>
             ) : currentParts.length === 0 ? (
               <div className="flex items-center justify-center h-64 text-slate-500 text-sm font-mono">
@@ -636,7 +645,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
 
                       {/* Label */}
                       <span className="text-[10px] text-center font-sans text-slate-300 truncate w-full px-1">
-                        {part.value}
+                        {isNone ? (lang === 'zh' ? '无' : 'None') : part.value}
                       </span>
 
                       {/* Selected Indicator Check */}
