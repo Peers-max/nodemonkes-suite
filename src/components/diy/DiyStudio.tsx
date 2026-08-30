@@ -442,26 +442,25 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
                   自动背景
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => colorInputRef.current?.click()}
-                  className={clsx(
-                    'py-2 px-1 rounded-lg text-xs font-medium border transition-all text-center',
-                    bgColor !== 'transparent' && bgColor !== '#F97316'
-                      ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 font-bold shadow'
-                      : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
-                  )}
-                >
-                  自选颜色
-                </button>
-
-                <input
-                  ref={colorInputRef}
-                  type="color"
-                  value={bgColor === 'transparent' ? '#000000' : bgColor}
-                  onChange={(e) => setBgColor(e.target.value)}
-                  className="hidden"
-                />
+                <div className="relative">
+                  <button
+                    type="button"
+                    className={clsx(
+                      'w-full py-2 px-1 rounded-lg text-xs font-medium border transition-all text-center relative overflow-hidden flex items-center justify-center',
+                      bgColor !== 'transparent' && bgColor !== '#F97316'
+                        ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 font-bold shadow'
+                        : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
+                    )}
+                  >
+                    <span>自选颜色</span>
+                    <input
+                      type="color"
+                      value={bgColor === 'transparent' ? '#000000' : bgColor}
+                      onChange={(e) => setBgColor(e.target.value)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                  </button>
+                </div>
               </div>
             </div>
 

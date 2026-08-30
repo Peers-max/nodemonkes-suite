@@ -82,21 +82,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           })}
         </nav>
 
-        {/* Right: Quick Tools & Links */}
+        {/* Right: Quick Links */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {onQuickSearchClick && (
-            <button
-              onClick={onQuickSearchClick}
-              className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-white/5 transition-all"
-            >
-              <Search className="w-3.5 h-3.5" />
-              <span>Search ID...</span>
-              <kbd className="px-1.5 py-0.5 text-[10px] bg-slate-900 rounded border border-white/10 font-mono text-slate-400">
-                /
-              </kbd>
-            </button>
-          )}
-
           <a
             href="https://github.com/Peers-max/nodemonkes-suite"
             target="_blank"

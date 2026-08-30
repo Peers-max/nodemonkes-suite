@@ -365,54 +365,56 @@ export const MonkesExplorer: React.FC<MonkesExplorerProps> = ({
                       onClick={() => setSelectedMonke(monke)}
                       className="hover:bg-white/[0.04] transition-colors cursor-pointer group"
                     >
-                      <td className="py-3 px-4 font-bold text-white text-sm">
+                      <td className="py-4 sm:py-5 px-4 font-mono font-extrabold text-white text-base sm:text-lg">
                         #{monke.id}
                       </td>
-                      <td className="py-3 px-4">
-                        <div className="w-10 h-10 rounded-lg bg-black/40 p-1 border border-white/10 flex items-center justify-center overflow-hidden">
+                      <td className="py-4 sm:py-5 px-4">
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-black/50 p-2 border border-white/10 flex items-center justify-center overflow-hidden shadow-md group-hover:border-amber-500/40 transition-all">
                           <img
                             src={getMonkeImageUrl(monke.id)}
                             alt={`#${monke.id}`}
-                            className="w-full h-full object-contain pixelated transform group-hover:scale-115 transition-transform"
+                            loading="lazy"
+                            className="w-full h-full object-contain pixelated transform group-hover:scale-115 transition-transform duration-200"
                           />
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-slate-200 font-sans font-medium">
+                      <td className="py-4 sm:py-5 px-4 text-slate-100 font-sans font-bold text-sm sm:text-base">
                         {attrs.Body}
                       </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-1.5 flex-wrap max-w-xs">
-                          {attrs.Head && <span className="px-2 py-0.5 rounded bg-white/5 text-slate-300 text-[10px]">{attrs.Head}</span>}
-                          {attrs.Eyes && <span className="px-2 py-0.5 rounded bg-white/5 text-slate-300 text-[10px]">{attrs.Eyes}</span>}
-                          {attrs.Earring && <span className="px-2 py-0.5 rounded bg-white/5 text-slate-300 text-[10px]">{attrs.Earring}</span>}
+                      <td className="py-4 sm:py-5 px-4">
+                        <div className="flex items-center gap-1.5 flex-wrap max-w-sm">
+                          {attrs.Head && <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-slate-200 text-xs font-medium">{attrs.Head}</span>}
+                          {attrs.Eyes && <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-slate-200 text-xs font-medium">{attrs.Eyes}</span>}
+                          {attrs.Earring && <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-slate-200 text-xs font-medium">{attrs.Earring}</span>}
                         </div>
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-4 sm:py-5 px-4">
                         {monke.rank ? (
-                          <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold text-[11px]">
+                          <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold text-xs shadow-sm">
                             #{monke.rank}
                           </span>
                         ) : (
                           '-'
                         )}
                       </td>
-                      <td className="py-3 px-4 text-slate-300">
+                      <td className="py-4 sm:py-5 px-4 text-slate-200 font-mono text-xs sm:text-sm font-semibold">
                         #{monke.inscription}
                       </td>
-                      <td className="py-3 px-4 text-slate-400">
+                      <td className="py-4 sm:py-5 px-4 text-slate-400 font-mono text-xs sm:text-sm">
                         {monke.block}
                       </td>
-                      <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                      <td className="py-4 sm:py-5 px-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-2">
-                          <span className="text-[11px] text-slate-400 font-mono max-w-[140px] truncate">
+                          <span className="text-xs text-slate-400 font-mono max-w-[160px] truncate bg-black/40 px-2.5 py-1 rounded-lg border border-white/5">
                             {monke.scriptPubkey.slice(0, 16)}...{monke.scriptPubkey.slice(-8)}
                           </span>
                           <button
+                            type="button"
                             onClick={() => handleCopyPubkey(monke.scriptPubkey, monke.id)}
-                            className="p-1 rounded hover:bg-white/10 text-slate-400 hover:text-amber-400 transition-colors"
+                            className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-amber-400 border border-transparent hover:border-white/10 transition-colors"
                             title="Copy Script PubKey"
                           >
-                            {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                            {isCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                           </button>
                         </div>
                       </td>
