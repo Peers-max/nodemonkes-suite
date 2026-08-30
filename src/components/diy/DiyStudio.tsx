@@ -1,17 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { 
-  Paintbrush, 
-  Download, 
-  Shuffle, 
-  RotateCcw, 
-  Palette, 
-  Sparkles, 
-  Check, 
-  RefreshCw,
-  Layers
-} from 'lucide-react';
+import { Paintbrush, Download, Shuffle, RefreshCw, Check } from 'lucide-react';
 import { clsx } from 'clsx';
-import { BODY_COLORS, PRESET_COLORS } from '../../utils/constants';
+import { BODY_COLORS } from '../../utils/constants';
 
 interface DiyStudioProps {
   onToast: (title: string, desc?: string, type?: 'success' | 'info' | 'error') => void;
@@ -28,11 +18,11 @@ interface TraitPart {
 const METADATA_URL = 'https://pub-ce8a03b190984a3d99332e13b7d5e3cb.r2.dev/metadata.json';
 
 const BASE_URLS: Record<SeriesType, string> = {
-  normal: 'https://pub-2f0821e8464b4c139f681d763393f4ee.r2.dev',
-  dog: 'https://pub-4d8b3f7049bb4025a6642c75eeb71c46.r2.dev',
   block: 'https://pub-d7a7a960d42949efb84bea391aa90d4c.r2.dev',
-  rabbit: 'https://pub-e50795db8d0d41dd942f04a8b290f95f.r2.dev',
+  dog: 'https://pub-4d8b3f7049bb4025a6642c75eeb71c46.r2.dev',
+  normal: 'https://pub-2f0821e8464b4c139f681d763393f4ee.r2.dev',
   peer: 'https://pub-026e5fdeaab545cc9c5aa34738735770.r2.dev',
+  rabbit: 'https://pub-e50795db8d0d41dd942f04a8b290f95f.r2.dev',
 };
 
 const CATEGORIES: CategoryType[] = ['Body', 'Earring', 'Eyes', 'Head'];
@@ -46,7 +36,7 @@ const SERIES_COMPONENTS: Record<SeriesType, CategoryType[]> = {
   peer: ['Body', 'Eyes'],
 };
 
-const SERIES_NAMES: { id: SeriesType; label: string }[] = [
+const SERIES_BUTTONS: { id: SeriesType; label: string }[] = [
   { id: 'normal', label: 'Normal' },
   { id: 'dog', label: 'Dog' },
   { id: 'block', label: 'Block' },
@@ -57,6 +47,7 @@ const SERIES_NAMES: { id: SeriesType; label: string }[] = [
 export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
   const [activeSeries, setActiveSeries] = useState<SeriesType>('normal');
   const [activeCategory, setActiveCategory] = useState<CategoryType>('Body');
+
   const [selectedParts, setSelectedParts] = useState<Record<CategoryType, string>>({
     Body: '',
     Earring: '',
@@ -64,8 +55,10 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
     Head: '',
   });
 
-  const [bgMode, setBgMode] = useState<'transparent' | 'orange' | 'auto' | 'custom'>('orange');
-  const [customBgColor, setCustomBgColor] = useState('#F97316');
+  const [bgColor, setBgColor] = useState<string>('transparent');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
   const [components, setComponents] = useState<Record<SeriesType, Record<CategoryType, TraitPart[]>>>({
     normal: { Body: [], Earring: [], Eyes: [], Head: [] },
     dog: { Body: [], Earring: [], Eyes: [], Head: [] },
@@ -74,40 +67,19 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
     peer: { Body: [], Earring: [], Eyes: [], Head: [] },
   });
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const colorInputRef = useRef<HTMLInputElement>(null);
 
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imageCache = useRef<Map<string, HTMLImageElement>>(new Map());
-
-  // Helper to load image with cache
-  const loadCachedImage = useCallback((url: string): Promise<HTMLImageElement> => {
-    if (imageCache.current.has(url)) {
-      return Promise.resolve(imageCache.current.get(url)!);
-    }
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        imageCache.current.set(url, img);
-        resolve(img);
-      };
-      img.onerror = () => reject(new Error(`Failed to load ${url}`));
-      img.src = url;
-    });
-  }, []);
-
-  // Fetch Metadata and Construct Trait Components List
+  // 1. Fetch Metadata and Build Component Lists (Ported 1:1 from original r2_content.html)
   useEffect(() => {
     let mounted = true;
 
-    const initMetadata = async () => {
+    const fetchMetadata = async () => {
       try {
         setLoading(true);
         const res = await fetch(METADATA_URL);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
-        const items: any[] = Array.isArray(data) ? data : [data];
+        const metadataList: any[] = Array.isArray(data) ? data : [data];
 
         const uniqueComponents: Record<CategoryType, Set<string>> = {
           Body: new Set(),
@@ -116,13 +88,13 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
           Head: new Set(),
         };
 
-        items.forEach((item) => {
+        metadataList.forEach((item) => {
           if (item.attributes) {
-            CATEGORIES.forEach((cat) => {
-              const val = item.attributes[cat];
-              if (val && val !== 'None') {
-                if (!(cat === 'Head' && SPECIAL_SERIES.includes(val))) {
-                  uniqueComponents[cat].add(val);
+            CATEGORIES.forEach((category) => {
+              const value = item.attributes[category];
+              if (value && value !== 'None') {
+                if (!(category === 'Head' && SPECIAL_SERIES.includes(value))) {
+                  uniqueComponents[category].add(value);
                 }
               }
             });
@@ -138,18 +110,18 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
         };
 
         (Object.keys(BASE_URLS) as SeriesType[]).forEach((series) => {
-          SERIES_COMPONENTS[series].forEach((cat) => {
-            const parts: TraitPart[] = Array.from(uniqueComponents[cat]).map((val) => ({
-              value: val,
-              url: `${BASE_URLS[series]}/${cat.toLowerCase()}/${val}.png`,
+          SERIES_COMPONENTS[series].forEach((category) => {
+            const parts: TraitPart[] = Array.from(uniqueComponents[category]).map((value) => ({
+              value,
+              url: `${BASE_URLS[series]}/${category.toLowerCase()}/${value}.png`,
             }));
 
             // Add 'None' option
-            if (['Earring', 'Eyes'].includes(cat) || (cat === 'Head' && series === 'normal')) {
+            if (['Earring', 'Eyes'].includes(category) || (category === 'Head' && series === 'normal')) {
               parts.unshift({ value: 'None', url: 'none' });
             }
 
-            newComponents[series][cat] = parts;
+            newComponents[series][category] = parts;
           });
         });
 
@@ -157,118 +129,57 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
         setComponents(newComponents);
 
         // Initial randomize
-        const initialSelection: Record<CategoryType, string> = {
+        const initialParts: Record<CategoryType, string> = {
           Body: '',
           Earring: '',
           Eyes: '',
           Head: '',
         };
 
-        const normalBodies = newComponents.normal.Body.filter((p) => p.url !== 'none');
-        if (normalBodies.length > 0) {
-          const randomBody = normalBodies[Math.floor(Math.random() * normalBodies.length)];
-          initialSelection.Body = randomBody.url;
-        }
+        SERIES_COMPONENTS.normal.forEach((cat) => {
+          const parts = newComponents.normal[cat];
+          const valid = parts.filter((p) => p.url !== 'none');
+          if (valid.length > 0) {
+            if (cat === 'Body' || Math.random() > 0.3) {
+              const rand = valid[Math.floor(Math.random() * valid.length)];
+              initialParts[cat] = rand.url;
+            } else {
+              initialParts[cat] = 'none';
+            }
+          }
+        });
 
-        const normalHeads = newComponents.normal.Head.filter((p) => p.url !== 'none');
-        if (normalHeads.length > 0) {
-          const randomHead = normalHeads[Math.floor(Math.random() * normalHeads.length)];
-          initialSelection.Head = randomHead.url;
-        }
-
-        setSelectedParts(initialSelection);
+        setSelectedParts(initialParts);
         setLoading(false);
       } catch (err: any) {
-        console.error('Failed to init DIY metadata:', err);
+        console.error('Error fetching DIY metadata:', err);
         if (mounted) setLoading(false);
       }
     };
 
-    initMetadata();
+    fetchMetadata();
 
     return () => {
       mounted = false;
     };
   }, []);
 
-  // Compute effective background color
-  const getSelectedBodyName = (): string | null => {
-    const bodyUrl = selectedParts.Body;
-    if (!bodyUrl || bodyUrl === 'none') return null;
-    const parts = bodyUrl.split('/');
-    const filename = parts[parts.length - 1];
-    return filename.replace('.png', '').toLowerCase();
-  };
-
-  const getAutoBgColor = (): string => {
-    const bodyName = getSelectedBodyName();
-    if (bodyName && BODY_COLORS[bodyName]) {
-      return BODY_COLORS[bodyName];
-    }
-    return '#F97316';
-  };
-
-  const effectiveBg =
-    bgMode === 'transparent'
-      ? null
-      : bgMode === 'orange'
-      ? '#F97316'
-      : bgMode === 'auto'
-      ? getAutoBgColor()
-      : customBgColor;
-
-  // Composite Canvas Layers
-  const renderCanvas = useCallback(async () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // 1. Background
-    if (effectiveBg) {
-      ctx.fillStyle = effectiveBg;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-
-    // 2. Layer Order: Body -> Earring -> Eyes -> Head
-    const layersToDraw = ['Body', 'Earring', 'Eyes', 'Head'] as CategoryType[];
-
-    for (const cat of layersToDraw) {
-      const url = selectedParts[cat];
-      if (url && url !== 'none') {
-        try {
-          const img = await loadCachedImage(url);
-          ctx.imageSmoothingEnabled = false;
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        } catch (e) {
-          // Ignore failed layer
-        }
-      }
-    }
-  }, [effectiveBg, selectedParts, loadCachedImage]);
-
-  useEffect(() => {
-    renderCanvas();
-  }, [renderCanvas]);
-
-  // Select Trait Part
-  const handleSelectPart = (category: CategoryType, url: string) => {
+  // Select a part
+  const selectPart = (category: CategoryType, src: string) => {
     setSelectedParts((prev) => ({
       ...prev,
-      [category]: url,
+      [category]: src,
     }));
   };
 
   // Switch Series
-  const handleSeriesChange = (series: SeriesType) => {
+  const setActiveSeriesHandler = (series: SeriesType) => {
     setActiveSeries(series);
     if (!SERIES_COMPONENTS[series].includes(activeCategory)) {
       setActiveCategory('Body');
     }
 
-    // Reset non-supported parts for this series
+    // Reset selected parts for this series
     setSelectedParts({
       Body: '',
       Earring: '',
@@ -277,8 +188,8 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
     });
   };
 
-  // Randomize Trait Combination
-  const handleRandomize = () => {
+  // Randomize (Ported 1:1 from original randomize function)
+  const randomize = () => {
     const newParts: Record<CategoryType, string> = {
       Body: '',
       Earring: '',
@@ -286,72 +197,104 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
       Head: '',
     };
 
-    SERIES_COMPONENTS[activeSeries].forEach((cat) => {
-      const available = components[activeSeries][cat];
-      if (available && available.length > 0) {
-        const valid = available.filter((p) => p.url !== 'none');
-        if (valid.length > 0) {
-          if (cat === 'Body') {
-            // Body is required
-            newParts.Body = valid[Math.floor(Math.random() * valid.length)].url;
-          } else {
-            // Other parts have 75% chance of being selected, 25% none
-            if (Math.random() > 0.25) {
-              newParts[cat] = valid[Math.floor(Math.random() * valid.length)].url;
-            } else {
-              newParts[cat] = 'none';
-            }
-          }
+    SERIES_COMPONENTS[activeSeries].forEach((category) => {
+      const parts = components[activeSeries][category];
+      if (parts && parts.length > 0) {
+        const validParts = parts.filter((item) => item.url !== 'none');
+        const useNone = ['Earring', 'Eyes'].includes(category) && Math.random() < 0.2;
+
+        if (!useNone && validParts.length > 0) {
+          const randomIndex = Math.floor(Math.random() * validParts.length);
+          newParts[category] = validParts[randomIndex].url;
+        } else if (useNone) {
+          newParts[category] = 'none';
+        } else if (validParts.length > 0) {
+          const randomIndex = Math.floor(Math.random() * validParts.length);
+          newParts[category] = validParts[randomIndex].url;
         }
       }
     });
 
     setSelectedParts(newParts);
-    onToast('🎲 随机搭配完成！', `已为 ${activeSeries.toUpperCase()} 系列生成随机组合`, 'info');
+    onToast('🎲 随机搭配完成！', `已为 ${activeSeries.toUpperCase()} 系列随机生成外观`, 'info');
   };
 
-  // Save Avatar (Download High-Res PNG)
-  const handleSaveAvatar = async () => {
+  // Auto Background
+  const setAutoBgColor = () => {
+    const bodyUrl = selectedParts.Body;
+    if (!bodyUrl || bodyUrl === 'none') {
+      onToast('请先选择身体部件', '无法匹配底色', 'error');
+      return;
+    }
+
+    const filename = bodyUrl.split('/').pop()?.replace('.png', '').toLowerCase() || '';
+    for (const [key, color] of Object.entries(BODY_COLORS)) {
+      if (filename.includes(key.toLowerCase())) {
+        setBgColor(color);
+        onToast('自动背景设置完成！', `匹配颜色: ${color}`, 'success');
+        return;
+      }
+    }
+    setBgColor('transparent');
+    onToast('未找到匹配背景色', '已设为透明', 'info');
+  };
+
+  // Save Avatar (Ported 1:1 from original saveAvatar function)
+  const saveAvatar = async () => {
     setSaving(true);
     try {
-      const exportCanvas = document.createElement('canvas');
-      exportCanvas.width = 600;
-      exportCanvas.height = 600;
-      const ctx = exportCanvas.getContext('2d');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('Canvas not available');
 
-      if (effectiveBg) {
-        ctx.fillStyle = effectiveBg;
-        ctx.fillRect(0, 0, 600, 600);
+      const OUTPUT_SIZE = 1008;
+      canvas.width = OUTPUT_SIZE;
+      canvas.height = OUTPUT_SIZE;
+      ctx.imageSmoothingEnabled = false;
+
+      // Draw background
+      if (bgColor && bgColor !== 'transparent') {
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
       }
 
-      const layersToDraw = ['Body', 'Earring', 'Eyes', 'Head'] as CategoryType[];
-      for (const cat of layersToDraw) {
-        const url = selectedParts[cat];
-        if (url && url !== 'none') {
-          const img = await loadCachedImage(url);
-          ctx.imageSmoothingEnabled = false;
-          ctx.drawImage(img, 0, 0, 600, 600);
+      // Draw layers in order: Body -> Earring -> Eyes -> Head
+      for (const category of CATEGORIES) {
+        const imgSrc = selectedParts[category];
+        if (imgSrc && imgSrc !== 'none') {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = () => reject(new Error(`Failed to load ${category}`));
+            img.src = imgSrc;
+          });
+          ctx.drawImage(img, 0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
         }
       }
 
-      const a = document.createElement('a');
-      a.href = exportCanvas.toDataURL('image/png');
-      a.download = `diynm-${activeSeries}-${Date.now()}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      canvas.toBlob((blob) => {
+        if (!blob) throw new Error('Blob creation failed');
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `avatar-${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 100);
 
-      onToast('头像已保存！', '成功导出 600px 高清无损 PNG 头像', 'success');
+        onToast('头像保存成功！', '已导出 1008px 原版高清无损 PNG 头像', 'success');
+        setSaving(false);
+      }, 'image/png');
     } catch (err: any) {
-      console.error('Failed to save avatar:', err);
+      console.error('Save failed:', err);
       onToast('保存失败', err.message || '请重试', 'error');
-    } finally {
       setSaving(false);
     }
   };
 
-  const currentAvailableParts = components[activeSeries][activeCategory] || [];
+  const currentParts = components[activeSeries][activeCategory] || [];
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -366,47 +309,80 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
           NodeMonkes DIY 头像工坊
         </h1>
         <p className="text-slate-400 text-sm max-w-xl mx-auto font-sans">
-          支持 Normal、Dog、Block、Rabbit、Peer 全系列官方原始图层，自由换装、图层拼装与无损导出。
+          100% 还原原版全部 5 大系列真实图层，支持身体、耳环、眼睛、头部自由拼装与高清导出。
         </p>
       </div>
 
-      {/* Main Studio Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* Left Side: Preview Canvas & Action Buttons */}
+        {/* Left Side: Original 4-Layer DOM Preview & Action Buttons */}
         <div className="lg:col-span-5 space-y-4">
           <div className="glass-panel p-5 rounded-3xl border border-white/10 shadow-2xl space-y-4">
             
-            {/* Canvas Preview Box */}
-            <div className="relative w-full aspect-square rounded-2xl bg-black/40 border border-white/10 flex items-center justify-center overflow-hidden group shadow-inner">
-              {bgMode === 'transparent' && (
-                <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:12px_12px]" />
+            {/* ⭐️ EXACT Original Preview Container with 4 stacked <img> tags */}
+            <div 
+              className="relative w-full aspect-square rounded-2xl border border-white/10 overflow-hidden shadow-inner flex items-center justify-center transition-colors"
+              style={{ backgroundColor: bgColor }}
+            >
+              {/* Checkerboard Pattern for transparent bg */}
+              {bgColor === 'transparent' && (
+                <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:12px_12px]" />
               )}
-              
-              <canvas
-                ref={canvasRef}
-                width={500}
-                height={500}
-                className="w-full h-full object-contain pixelated relative z-10 filter drop-shadow-2xl"
-              />
+
+              {/* Layer 1: Body */}
+              {selectedParts.Body && selectedParts.Body !== 'none' && (
+                <img
+                  src={selectedParts.Body}
+                  alt="Body Layer"
+                  className="absolute inset-0 w-full h-full object-contain pixelated pointer-events-none z-10"
+                />
+              )}
+
+              {/* Layer 2: Earring */}
+              {selectedParts.Earring && selectedParts.Earring !== 'none' && (
+                <img
+                  src={selectedParts.Earring}
+                  alt="Earring Layer"
+                  className="absolute inset-0 w-full h-full object-contain pixelated pointer-events-none z-20"
+                />
+              )}
+
+              {/* Layer 3: Eyes */}
+              {selectedParts.Eyes && selectedParts.Eyes !== 'none' && (
+                <img
+                  src={selectedParts.Eyes}
+                  alt="Eyes Layer"
+                  className="absolute inset-0 w-full h-full object-contain pixelated pointer-events-none z-30"
+                />
+              )}
+
+              {/* Layer 4: Head */}
+              {selectedParts.Head && selectedParts.Head !== 'none' && (
+                <img
+                  src={selectedParts.Head}
+                  alt="Head Layer"
+                  className="absolute inset-0 w-full h-full object-contain pixelated pointer-events-none z-40"
+                />
+              )}
 
               {loading && (
-                <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2 z-20">
+                <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2 z-50">
                   <RefreshCw className="w-6 h-6 text-emerald-400 animate-spin" />
-                  <span className="text-xs font-mono text-slate-300">正在加载全量官方图层...</span>
+                  <span className="text-xs font-mono text-slate-300">正在加载官方组件...</span>
                 </div>
               )}
 
-              <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-[11px] font-mono text-slate-300">
+              <div className="absolute top-3 left-3 z-50 flex items-center gap-1.5 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-[11px] font-mono text-slate-300">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 <span>{activeSeries.toUpperCase()} SERIES</span>
               </div>
             </div>
 
-            {/* Quick Actions (Randomize & Save) */}
+            {/* Quick Actions (Save & Randomize) */}
             <div className="grid grid-cols-2 gap-2.5">
               <button
-                onClick={handleRandomize}
+                type="button"
+                onClick={randomize}
                 disabled={loading}
                 className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 font-semibold text-xs transition-all shadow-md active:scale-95"
               >
@@ -415,12 +391,13 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
               </button>
 
               <button
-                onClick={handleSaveAvatar}
+                type="button"
+                onClick={saveAvatar}
                 disabled={loading || saving}
                 className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
               >
                 {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                <span>{saving ? '保存中...' : '💾 保存头像'}</span>
+                <span>{saving ? '正在保存...' : '💾 保存头像'}</span>
               </button>
             </div>
 
@@ -431,10 +408,11 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
               </span>
               <div className="grid grid-cols-4 gap-1.5">
                 <button
-                  onClick={() => setBgMode('transparent')}
+                  type="button"
+                  onClick={() => setBgColor('transparent')}
                   className={clsx(
                     'py-2 px-1 rounded-lg text-xs font-medium border transition-all text-center',
-                    bgMode === 'transparent'
+                    bgColor === 'transparent'
                       ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 font-bold shadow'
                       : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
                   )}
@@ -443,10 +421,11 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
                 </button>
 
                 <button
-                  onClick={() => setBgMode('orange')}
+                  type="button"
+                  onClick={() => setBgColor('#F97316')}
                   className={clsx(
                     'py-2 px-1 rounded-lg text-xs font-medium border transition-all text-center',
-                    bgMode === 'orange'
+                    bgColor === '#F97316'
                       ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 font-bold shadow'
                       : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
                   )}
@@ -455,55 +434,36 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
                 </button>
 
                 <button
-                  onClick={() => setBgMode('auto')}
+                  type="button"
+                  onClick={setAutoBgColor}
                   className={clsx(
-                    'py-2 px-1 rounded-lg text-xs font-medium border transition-all text-center',
-                    bgMode === 'auto'
-                      ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 font-bold shadow'
-                      : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
+                    'py-2 px-1 rounded-lg text-xs font-medium border transition-all text-center bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
                   )}
                 >
                   自动背景
                 </button>
 
                 <button
-                  onClick={() => setBgMode('custom')}
+                  type="button"
+                  onClick={() => colorInputRef.current?.click()}
                   className={clsx(
                     'py-2 px-1 rounded-lg text-xs font-medium border transition-all text-center',
-                    bgMode === 'custom'
+                    bgColor !== 'transparent' && bgColor !== '#F97316'
                       ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 font-bold shadow'
                       : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
                   )}
                 >
                   自选颜色
                 </button>
-              </div>
 
-              {/* Custom Color Palette */}
-              {bgMode === 'custom' && (
-                <div className="p-2.5 rounded-xl bg-slate-900/80 border border-white/5 flex items-center gap-2 flex-wrap animate-in fade-in">
-                  {PRESET_COLORS.map((c) => (
-                    <button
-                      key={c.value}
-                      onClick={() => setCustomBgColor(c.value)}
-                      title={c.name}
-                      className={clsx(
-                        'w-6 h-6 rounded-md border transition-transform',
-                        customBgColor.toLowerCase() === c.value.toLowerCase()
-                          ? 'scale-110 ring-2 ring-emerald-400 border-white'
-                          : 'border-white/20 hover:scale-105'
-                      )}
-                      style={{ backgroundColor: c.value }}
-                    />
-                  ))}
-                  <input
-                    type="color"
-                    value={customBgColor}
-                    onChange={(e) => setCustomBgColor(e.target.value)}
-                    className="w-6 h-6 rounded cursor-pointer bg-transparent border-0"
-                  />
-                </div>
-              )}
+                <input
+                  ref={colorInputRef}
+                  type="color"
+                  value={bgColor === 'transparent' ? '#000000' : bgColor}
+                  onChange={(e) => setBgColor(e.target.value)}
+                  className="hidden"
+                />
+              </div>
             </div>
 
             {/* Series Buttons */}
@@ -512,10 +472,11 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
                 系列切换 (Series)
               </span>
               <div className="grid grid-cols-5 gap-1.5">
-                {SERIES_NAMES.map((s) => (
+                {SERIES_BUTTONS.map((s) => (
                   <button
                     key={s.id}
-                    onClick={() => handleSeriesChange(s.id)}
+                    type="button"
+                    onClick={() => setActiveSeriesHandler(s.id)}
                     className={clsx(
                       'py-2 rounded-xl text-xs font-mono font-semibold transition-all text-center border',
                       activeSeries === s.id
@@ -532,7 +493,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
           </div>
         </div>
 
-        {/* Right Side: Category Tabs & Trait Grid */}
+        {/* Right Side: Category Tabs & Trait Parts Grid */}
         <div className="lg:col-span-7 glass-panel p-5 rounded-3xl border border-white/10 shadow-2xl flex flex-col min-h-[580px]">
           
           {/* Category Tabs */}
@@ -544,10 +505,11 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
               return (
                 <button
                   key={cat}
+                  type="button"
                   onClick={() => isSupported && setActiveCategory(cat)}
                   disabled={!isSupported}
                   className={clsx(
-                    'flex-1 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all text-center',
+                    'flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all text-center',
                     !isSupported && 'opacity-30 cursor-not-allowed text-slate-600',
                     isActive
                       ? 'bg-emerald-500 text-slate-950 shadow-md font-bold'
@@ -561,26 +523,26 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
             })}
           </div>
 
-          {/* Parts Grid */}
+          {/* Parts Grid (Ported 1:1 from original updatePartsGrid) */}
           <div className="flex-1 overflow-y-auto max-h-[480px] pr-1">
             {!SERIES_COMPONENTS[activeSeries].includes(activeCategory) ? (
               <div className="flex items-center justify-center h-64 text-slate-500 text-sm font-mono">
                 {activeSeries.toUpperCase()} 系列不支持 {activeCategory} 组件
               </div>
-            ) : currentAvailableParts.length === 0 ? (
+            ) : currentParts.length === 0 ? (
               <div className="flex items-center justify-center h-64 text-slate-500 text-sm font-mono">
                 正在加载组件...
               </div>
             ) : (
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 p-1">
-                {currentAvailableParts.map((part) => {
+                {currentParts.map((part) => {
                   const isSelected = selectedParts[activeCategory] === part.url;
                   const isNone = part.url === 'none';
 
                   return (
                     <div
                       key={part.value}
-                      onClick={() => handleSelectPart(activeCategory, part.url)}
+                      onClick={() => selectPart(activeCategory, part.url)}
                       className={clsx(
                         'aspect-square rounded-2xl p-2 cursor-pointer transition-all duration-200 flex flex-col items-center justify-between border group relative overflow-hidden',
                         isSelected
