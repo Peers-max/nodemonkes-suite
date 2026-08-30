@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Paintbrush, Download, Shuffle, RefreshCw, Check, Palette } from 'lucide-react';
 import { clsx } from 'clsx';
 import { BODY_COLORS, PRESET_COLORS } from '../../utils/constants';
@@ -52,34 +52,15 @@ const RESOLUTION_OPTIONS = [
   { label: '4096px (4K)', value: 4096, desc: '4K 极清' },
 ];
 
-// Helper to safely load layer images without CORS cache mismatch
-async function loadLayerImage(url: string): Promise<HTMLImageElement> {
-  try {
-    const res = await fetch(url, { mode: 'cors' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const blob = await res.blob();
-    const objectUrl = URL.createObjectURL(blob);
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        URL.revokeObjectURL(objectUrl);
-        resolve(img);
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(objectUrl);
-        reject(new Error('Image decode error'));
-      };
-      img.src = objectUrl;
-    });
-  } catch {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error(`Failed to load: ${url}`));
-      img.src = url.includes('?') ? `${url}&t=${Date.now()}` : `${url}?t=${Date.now()}`;
-    });
-  }
+// Helper to load layer image for canvas export with cache-buster
+function loadCanvasImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
+    img.src = `${url}?t=${Date.now()}`;
+  });
 }
 
 export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
@@ -301,7 +282,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
       for (const category of CATEGORIES) {
         const imgSrc = selectedParts[category];
         if (imgSrc && imgSrc !== 'none') {
-          const img = await loadLayerImage(imgSrc);
+          const img = await loadCanvasImage(imgSrc);
           ctx.drawImage(img, 0, 0, size, size);
         }
       }
@@ -352,7 +333,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
         <div className="lg:col-span-5 space-y-4">
           <div className="glass-panel p-5 rounded-3xl border border-white/10 shadow-2xl space-y-4">
             
-            {/* ⭐️ EXACT Original Preview Container with 4 stacked <img> tags */}
+            {/* ⭐️ EXACT Original Preview Container with 4 stacked <img> tags (Native 0-CORS) */}
             <div 
               className="relative w-full aspect-square rounded-2xl border border-white/10 overflow-hidden shadow-inner flex items-center justify-center transition-colors"
               style={{ backgroundColor: currentBgColor }}
@@ -365,7 +346,6 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
               {/* Layer 1: Body */}
               {selectedParts.Body && selectedParts.Body !== 'none' && (
                 <img
-                  crossOrigin="anonymous"
                   src={selectedParts.Body}
                   alt="Body Layer"
                   className="absolute inset-0 w-full h-full object-contain pixelated pointer-events-none z-10"
@@ -375,7 +355,6 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
               {/* Layer 2: Earring */}
               {selectedParts.Earring && selectedParts.Earring !== 'none' && (
                 <img
-                  crossOrigin="anonymous"
                   src={selectedParts.Earring}
                   alt="Earring Layer"
                   className="absolute inset-0 w-full h-full object-contain pixelated pointer-events-none z-20"
@@ -385,7 +364,6 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
               {/* Layer 3: Eyes */}
               {selectedParts.Eyes && selectedParts.Eyes !== 'none' && (
                 <img
-                  crossOrigin="anonymous"
                   src={selectedParts.Eyes}
                   alt="Eyes Layer"
                   className="absolute inset-0 w-full h-full object-contain pixelated pointer-events-none z-30"
@@ -395,7 +373,6 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
               {/* Layer 4: Head */}
               {selectedParts.Head && selectedParts.Head !== 'none' && (
                 <img
-                  crossOrigin="anonymous"
                   src={selectedParts.Head}
                   alt="Head Layer"
                   className="absolute inset-0 w-full h-full object-contain pixelated pointer-events-none z-40"
@@ -613,7 +590,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
             })}
           </div>
 
-          {/* Parts Grid (Ported 1:1 from original updatePartsGrid) */}
+          {/* Parts Grid (Ported 1:1 from original updatePartsGrid with native clean img) */}
           <div className="flex-1 overflow-y-auto max-h-[480px] pr-1">
             {!SERIES_COMPONENTS[activeSeries].includes(activeCategory) ? (
               <div className="flex items-center justify-center h-64 text-slate-500 text-sm font-mono">
@@ -648,7 +625,6 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
                           </div>
                         ) : (
                           <img
-                            crossOrigin="anonymous"
                             src={part.url}
                             alt={part.value}
                             loading="lazy"
