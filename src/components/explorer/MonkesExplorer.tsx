@@ -70,20 +70,22 @@ export const MonkesExplorer: React.FC<MonkesExplorerProps> = ({
       );
     }
 
-    // Sort
-    result = [...result].sort((a, b) => {
-      let valA = a[sortField] ?? 0;
-      let valB = b[sortField] ?? 0;
+    // Sort (skip if already in default rank-ascending order)
+    if (sortField !== 'rank' || sortOrder !== 'asc') {
+      result = [...result].sort((a, b) => {
+        let valA = a[sortField] ?? 0;
+        let valB = b[sortField] ?? 0;
 
-      if (sortField === 'rank') {
-        valA = a.rank ?? 99999;
-        valB = b.rank ?? 99999;
-      }
+        if (sortField === 'rank') {
+          valA = a.rank ?? 99999;
+          valB = b.rank ?? 99999;
+        }
 
-      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
-      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
-      return 0;
-    });
+        if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+        if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
 
     return result;
   }, [monkes, searchTerm, selectedBody, sortField, sortOrder]);
