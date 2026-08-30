@@ -1,33 +1,38 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Search, 
-  SlidersHorizontal, 
+  Filter, 
+  ArrowUpDown, 
   LayoutGrid, 
   Table as TableIcon, 
-  ChevronLeft, 
-  ChevronRight, 
   Sparkles, 
-  Copy, 
-  Check, 
-  Eye, 
-  ArrowUpDown,
-  Filter,
-  RefreshCw
+  Gift, 
+  Info, 
+  ChevronLeft, 
+  ChevronRight,
+  ExternalLink,
+  Copy,
+  Check
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import type { Monke, SortField, SortOrder, ViewMode } from '../../types';
+import type { Monke } from '../../types';
 import { getMonkeImageUrl } from '../../utils/api';
 import { ALL_BODY_TYPES } from '../../utils/constants';
 import { TraitBadge } from '../ui/Badge';
 import { MonkeDetailModal } from './MonkeDetailModal';
+import { useLanguage } from '../../utils/i18n';
 
 interface MonkesExplorerProps {
   monkes: Monke[];
   loading: boolean;
-  onOpenInGif: (id: number) => void;
-  onOpenInSanta: (id: number) => void;
-  onToast: (title: string, desc?: string, type?: 'success' | 'info') => void;
+  onOpenInGif: (monkeId: number) => void;
+  onOpenInSanta: (monkeId: number) => void;
+  onToast: (title: string, desc?: string, type?: 'success' | 'info' | 'error') => void;
 }
+
+type ViewMode = 'grid' | 'table';
+type SortField = 'rank' | 'id' | 'inscription' | 'block';
+type SortOrder = 'asc' | 'desc';
 
 export const MonkesExplorer: React.FC<MonkesExplorerProps> = ({
   monkes,
@@ -36,15 +41,18 @@ export const MonkesExplorer: React.FC<MonkesExplorerProps> = ({
   onOpenInSanta,
   onToast,
 }) => {
+  const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBody, setSelectedBody] = useState('all');
   const [sortField, setSortField] = useState<SortField>('rank');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(24);
+  const [itemsPerPage, setItemsPerPage] = useState(48);
   const [jumpPageInput, setJumpPageInput] = useState('');
-  const [selectedMonke, setSelectedMonke] = useState<Monke | null>(null);
+
+  const [activeModalMonke, setActiveModalMonke] = useState<Monke | null>(null);
   const [copiedId, setCopiedId] = useState<number | null>(null);
 
   // Filter and Sort Pipeline
@@ -70,20 +78,22 @@ export const MonkesExplorer: React.FC<MonkesExplorerProps> = ({
       );
     }
 
-    // Sort
-    result = [...result].sort((a, b) => {
-      let valA = a[sortField] ?? 0;
-      let valB = b[sortField] ?? 0;
+    // Sort (skip if already in default rank-ascending order)
+    if (sortField !== 'rank' || sortOrder !== 'asc') {
+      result = [...result].sort((a, b) => {
+        let valA = a[sortField] ?? 0;
+        let valB = b[sortField] ?? 0;
 
-      if (sortField === 'rank') {
-        valA = a.rank ?? 99999;
-        valB = b.rank ?? 99999;
-      }
+        if (sortField === 'rank') {
+          valA = a.rank ?? 99999;
+          valB = b.rank ?? 99999;
+        }
 
-      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
-      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
-      return 0;
-    });
+        if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+        if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
 
     return result;
   }, [monkes, searchTerm, selectedBody, sortField, sortOrder]);
@@ -104,7 +114,7 @@ export const MonkesExplorer: React.FC<MonkesExplorerProps> = ({
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage);
-      window.scrollTo({ top: 180, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -120,7 +130,7 @@ export const MonkesExplorer: React.FC<MonkesExplorerProps> = ({
   const handleCopyPubkey = (text: string, id: number) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
-    onToast('Copied to clipboard', `Script PubKey for #${id} copied.`, 'success');
+    onToast(t.modalCopySuccess, `Script PubKey for #${id} copied.`, 'success');
     setTimeout(() => setCopiedId(null), 2000);
   };
 
@@ -136,7 +146,7 @@ export const MonkesExplorer: React.FC<MonkesExplorerProps> = ({
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Search by ID or Inscription #..."
+              placeholder={t.searchPlaceholder}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900/90 border border-white/10 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/60 transition-all font-mono"
@@ -146,7 +156,7 @@ export const MonkesExplorer: React.FC<MonkesExplorerProps> = ({
                 onClick={() => setSearchTerm('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white"
               >
-                Clear
+                {t.clearSearch}
               </button>
             )}
           </div>
@@ -163,7 +173,7 @@ export const MonkesExplorer: React.FC<MonkesExplorerProps> = ({
               >
                 {ALL_BODY_TYPES.map((b) => (
                   <option key={b} value={b} className="bg-slate-900 text-slate-100">
-                    {b === 'all' ? 'All Body Types' : b}
+                    {b === 'all' ? t.allBodies : b}
                   </option>
                 ))}
               </select>
@@ -177,14 +187,14 @@ export const MonkesExplorer: React.FC<MonkesExplorerProps> = ({
                 onChange={(e) => setSortField(e.target.value as SortField)}
                 className="bg-transparent pl-2.5 pr-2 py-1.5 text-slate-200 focus:outline-none cursor-pointer text-xs"
               >
-                <option value="rank" className="bg-slate-900">Sort by Rank</option>
-                <option value="id" className="bg-slate-900">Sort by ID</option>
+                <option value="rank" className="bg-slate-900">{t.sortRank}</option>
+                <option value="id" className="bg-slate-900">{t.sortId}</option>
                 <option value="inscription" className="bg-slate-900">Sort by Inscription</option>
                 <option value="block" className="bg-slate-900">Sort by Block</option>
               </select>
               <button
                 onClick={() => setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'))}
-                title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+                title={sortOrder === 'asc' ? t.orderAsc : t.orderDesc}
                 className="px-2 py-1.5 hover:bg-white/5 rounded-lg text-slate-400 hover:text-amber-400 transition-colors"
               >
                 <ArrowUpDown className="w-3.5 h-3.5" />
@@ -201,7 +211,7 @@ export const MonkesExplorer: React.FC<MonkesExplorerProps> = ({
                     ? 'bg-amber-500 text-slate-950 shadow-md font-bold'
                     : 'text-slate-400 hover:text-white'
                 )}
-                title="Grid View"
+                title={t.viewGrid}
               >
                 <LayoutGrid className="w-4 h-4" />
               </button>
@@ -213,7 +223,7 @@ export const MonkesExplorer: React.FC<MonkesExplorerProps> = ({
                     ? 'bg-amber-500 text-slate-950 shadow-md font-bold'
                     : 'text-slate-400 hover:text-white'
                 )}
-                title="Table View"
+                title={t.viewTable}
               >
                 <TableIcon className="w-4 h-4" />
               </button>
@@ -226,7 +236,7 @@ export const MonkesExplorer: React.FC<MonkesExplorerProps> = ({
         {/* Stats & Summary Bar */}
         <div className="flex flex-wrap items-center justify-between text-xs text-slate-400 pt-2 border-t border-white/5 font-mono">
           <div>
-            Showing <span className="text-white font-semibold">{filteredAndSortedMonkes.length.toLocaleString()}</span> of{' '}
+            {t.totalFound} <span className="text-white font-semibold">{filteredAndSortedMonkes.length.toLocaleString()}</span> /{' '}
             <span className="text-white font-semibold">{monkes.length.toLocaleString()}</span> NodeMonkes
             {selectedBody !== 'all' && (
               <span className="ml-2 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/20">
@@ -236,16 +246,16 @@ export const MonkesExplorer: React.FC<MonkesExplorerProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            <span>Per Page:</span>
+            <span>{t.perPage}:</span>
             {[24, 48, 96].map((num) => (
               <button
                 key={num}
                 onClick={() => setItemsPerPage(num)}
                 className={clsx(
-                  'px-2 py-0.5 rounded transition-all',
+                  'px-2 py-0.5 rounded-md text-xs transition-colors',
                   itemsPerPage === num
-                    ? 'bg-white/15 text-amber-400 font-bold'
-                    : 'hover:text-white'
+                    ? 'bg-amber-500 text-slate-950 font-bold'
+                    : 'bg-slate-800 text-slate-400 hover:text-white'
                 )}
               >
                 {num}
@@ -253,81 +263,105 @@ export const MonkesExplorer: React.FC<MonkesExplorerProps> = ({
             ))}
           </div>
         </div>
+
       </div>
 
-      {/* Loading Skeleton State */}
-      {loading && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 animate-pulse">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="aspect-square bg-slate-800/40 rounded-2xl border border-white/5" />
+      {/* Main Content: Grid or Table View */}
+      {loading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {Array.from({ length: 24 }).map((_, i) => (
+            <div
+              key={i}
+              className="aspect-square rounded-2xl bg-slate-900/60 animate-pulse border border-white/5 flex items-center justify-center"
+            >
+              <div className="w-12 h-12 rounded-full bg-slate-800/80" />
+            </div>
           ))}
         </div>
-      )}
-
-      {/* Empty State */}
-      {!loading && filteredAndSortedMonkes.length === 0 && (
-        <div className="text-center py-20 glass-panel rounded-2xl border border-white/5 space-y-3">
-          <p className="text-slate-400 text-sm font-mono">No NodeMonkes matching your criteria.</p>
-          <button
-            onClick={() => {
-              setSearchTerm('');
-              setSelectedBody('all');
-            }}
-            className="px-4 py-2 rounded-xl text-xs bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 transition-all font-semibold"
-          >
-            Clear All Filters
-          </button>
+      ) : filteredAndSortedMonkes.length === 0 ? (
+        <div className="glass-panel p-12 rounded-3xl text-center space-y-3">
+          <Info className="w-12 h-12 text-slate-500 mx-auto" />
+          <h3 className="text-lg font-bold text-slate-200">{t.noResults}</h3>
+          <p className="text-sm text-slate-400">Try changing your search keywords or resetting filters.</p>
         </div>
-      )}
-
-      {/* View 1: Grid Mode */}
-      {!loading && viewMode === 'grid' && (
+      ) : viewMode === 'grid' ? (
+        
+        /* Grid Mode */
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5 sm:gap-4">
           {paginatedMonkes.map((monke) => {
-            const body = monke.attributes?.Body;
+            const attrs = monke.attributes;
             return (
               <div
                 key={monke.id}
-                onClick={() => setSelectedMonke(monke)}
-                className="group relative glass-card rounded-2xl p-3 flex flex-col justify-between cursor-pointer overflow-hidden"
+                onClick={() => setActiveModalMonke(monke)}
+                className="group glass-panel rounded-2xl p-2.5 sm:p-3 border border-white/5 hover:border-amber-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/10 hover:-translate-y-1 cursor-pointer flex flex-col justify-between"
               >
-                {/* Rank Ribbon */}
-                {monke.rank && (
-                  <div className="absolute top-2 left-2 z-10">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-black/70 text-amber-300 border border-amber-500/30 backdrop-blur-md shadow-sm">
-                      #{monke.rank}
-                    </span>
-                  </div>
-                )}
-
-                {/* Monke Image */}
-                <div className="relative aspect-square rounded-xl bg-black/40 overflow-hidden flex items-center justify-center p-2 mb-2.5">
+                {/* Image Box */}
+                <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-black/40 border border-white/5 mb-2.5">
                   <img
                     src={getMonkeImageUrl(monke.id)}
-                    alt={`Monke #${monke.id}`}
+                    alt={`NodeMonke #${monke.id}`}
                     loading="lazy"
-                    className="w-full h-full object-contain pixelated transform group-hover:scale-110 transition-transform duration-300"
+                    className="w-full h-full object-contain pixelated group-hover:scale-105 transition-transform duration-300"
                   />
-                  {/* Hover Overlay Button */}
-                  <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity backdrop-blur-[2px]">
-                    <span className="p-2 rounded-xl bg-amber-500 text-slate-950 shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform">
-                      <Eye className="w-4 h-4" />
-                    </span>
+                  
+                  {/* Rank Badge */}
+                  {monke.rank && (
+                    <div className="absolute top-1.5 left-1.5">
+                      <span className="px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-black/70 backdrop-blur-md text-amber-300 border border-white/10">
+                        #{monke.rank}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Hover Quick Action Buttons */}
+                  <div className="absolute inset-0 bg-black/70 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenInGif(monke.id);
+                      }}
+                      title={t.actionMakeGif}
+                      className="p-2 rounded-xl bg-amber-500 text-slate-950 hover:scale-110 transition-transform shadow-lg"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenInSanta(monke.id);
+                      }}
+                      title={t.actionSanta}
+                      className="p-2 rounded-xl bg-rose-500 text-white hover:scale-110 transition-transform shadow-lg"
+                    >
+                      <Gift className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
 
-                {/* Card Info */}
-                <div className="space-y-1.5 font-mono">
+                {/* ID & Inscription Info */}
+                <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-white text-sm">#{monke.id}</span>
-                    <span className="text-[11px] text-slate-400 font-sans">
-                      {body}
+                    <span className="font-mono font-bold text-xs sm:text-sm text-slate-100">
+                      #{monke.id}
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400">
+                      #{monke.inscription}
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-white/5">
-                    <span>Ins #{monke.inscription}</span>
-                    <span className="text-amber-400/80">4 Traits</span>
+                  {/* Traits Badges */}
+                  <div className="flex flex-wrap gap-1">
+                    {attrs.Body && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-slate-300 font-sans border border-white/5 truncate max-w-full">
+                        {attrs.Body}
+                      </span>
+                    )}
+                    {attrs.Head && attrs.Head !== 'None' && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 font-sans border border-amber-500/20 truncate max-w-full">
+                        {attrs.Head}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -335,99 +369,72 @@ export const MonkesExplorer: React.FC<MonkesExplorerProps> = ({
             );
           })}
         </div>
-      )}
+      ) : (
 
-      {/* View 2: Table Mode */}
-      {!loading && viewMode === 'table' && (
-        <div className="glass-panel rounded-2xl overflow-hidden shadow-xl border border-white/5">
+        /* Table Mode */
+        <div className="glass-panel rounded-2xl border border-white/5 overflow-hidden shadow-2xl">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse font-mono text-xs">
-              <thead>
-                <tr className="border-b border-white/10 bg-white/[0.03] text-slate-400 uppercase tracking-wider text-[11px]">
-                  <th className="py-3.5 px-4 font-semibold"># ID</th>
-                  <th className="py-3.5 px-4 font-semibold">PREVIEW</th>
-                  <th className="py-3.5 px-4 font-semibold">TRAITS & RARITY BREAKDOWN</th>
-                  <th className="py-3.5 px-4 font-semibold">RANK</th>
-                  <th className="py-3.5 px-4 font-semibold">INSCRIPTION</th>
-                  <th className="py-3.5 px-4 font-semibold">BLOCK</th>
-                  <th className="py-3.5 px-4 font-semibold">SCRIPT PUBKEY</th>
+            <table className="w-full text-left text-xs font-mono">
+              <thead className="bg-slate-900/90 border-b border-white/10 text-slate-400 uppercase text-[11px]">
+                <tr>
+                  <th className="py-3 px-4">{t.tableThImage}</th>
+                  <th className="py-3 px-4">{t.tableThRank}</th>
+                  <th className="py-3 px-4">{t.tableThId}</th>
+                  <th className="py-3 px-4">{t.tableThInscription}</th>
+                  <th className="py-3 px-4">{t.tableThTraits}</th>
+                  <th className="py-3 px-4 text-right">{t.tableThActions}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-white/5 text-slate-300">
                 {paginatedMonkes.map((monke) => {
                   const attrs = monke.attributes;
-                  const isCopied = copiedId === monke.id;
-
                   return (
-                    <tr
+                    <tr 
                       key={monke.id}
-                      onClick={() => setSelectedMonke(monke)}
-                      className="hover:bg-white/[0.04] transition-colors cursor-pointer group"
+                      onClick={() => setActiveModalMonke(monke)}
+                      className="hover:bg-white/[0.03] transition-colors cursor-pointer group"
                     >
-                      <td className="py-4 sm:py-5 px-4 font-mono font-extrabold text-white text-base sm:text-lg">
-                        #{monke.id}
-                      </td>
-                      <td className="py-4 sm:py-5 px-4">
-                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-black/50 p-2 border border-white/10 flex items-center justify-center overflow-hidden shadow-md group-hover:border-amber-500/40 transition-all">
+                      <td className="py-2.5 px-4">
+                        <div className="w-24 h-24 rounded-xl overflow-hidden bg-black/40 border border-white/10 p-1 flex items-center justify-center shrink-0">
                           <img
                             src={getMonkeImageUrl(monke.id)}
-                            alt={`#${monke.id}`}
-                            loading="lazy"
-                            className="w-full h-full object-contain pixelated transform group-hover:scale-115 transition-transform duration-200"
+                            alt={`NodeMonke #${monke.id}`}
+                            className="w-full h-full object-contain pixelated group-hover:scale-110 transition-transform"
                           />
                         </div>
                       </td>
-                      <td className="py-4 sm:py-5 px-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-w-md">
-                          <TraitBadge
-                            label="Body"
-                            value={attrs.Body}
-                            percentage={attrs.BodyCount ? (attrs.BodyCount / 10000) * 100 : undefined}
-                          />
-                          <TraitBadge
-                            label="Head"
-                            value={attrs.Head || 'None'}
-                            percentage={attrs.HeadCount ? (attrs.HeadCount / 10000) * 100 : undefined}
-                          />
-                          <TraitBadge
-                            label="Eyes"
-                            value={attrs.Eyes || 'None'}
-                            percentage={attrs.EyesCount ? (attrs.EyesCount / 10000) * 100 : undefined}
-                          />
-                          <TraitBadge
-                            label="Earring"
-                            value={attrs.Earring || 'None'}
-                            percentage={attrs.EarringCount ? (attrs.EarringCount / 10000) * 100 : undefined}
-                          />
-                        </div>
+                      <td className="py-2.5 px-4 font-bold text-amber-400">
+                        #{monke.rank || '-'}
                       </td>
-                      <td className="py-4 sm:py-5 px-4">
-                        {monke.rank ? (
-                          <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold text-xs shadow-sm">
-                            #{monke.rank}
-                          </span>
-                        ) : (
-                          '-'
-                        )}
+                      <td className="py-2.5 px-4 font-bold text-white">
+                        #{monke.id}
                       </td>
-                      <td className="py-4 sm:py-5 px-4 text-slate-200 font-mono text-xs sm:text-sm font-semibold">
+                      <td className="py-2.5 px-4 text-slate-400">
                         #{monke.inscription}
                       </td>
-                      <td className="py-4 sm:py-5 px-4 text-slate-400 font-mono text-xs sm:text-sm">
-                        {monke.block}
+                      <td className="py-2.5 px-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 max-w-xl">
+                          <TraitBadge label="Body" value={attrs.Body} percentage={attrs.BodyCount ? (attrs.BodyCount / 10000) * 100 : undefined} />
+                          <TraitBadge label="Head" value={attrs.Head || 'None'} percentage={attrs.HeadCount ? (attrs.HeadCount / 10000) * 100 : undefined} />
+                          <TraitBadge label="Eyes" value={attrs.Eyes || 'None'} percentage={attrs.EyesCount ? (attrs.EyesCount / 10000) * 100 : undefined} />
+                          <TraitBadge label="Earring" value={attrs.Earring || 'None'} percentage={attrs.EarringCount ? (attrs.EarringCount / 10000) * 100 : undefined} />
+                        </div>
                       </td>
-                      <td className="py-4 sm:py-5 px-4" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-slate-400 font-mono max-w-[160px] truncate bg-black/40 px-2.5 py-1 rounded-lg border border-white/5">
-                            {monke.scriptPubkey.slice(0, 16)}...{monke.scriptPubkey.slice(-8)}
-                          </span>
+                      <td className="py-2.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
                           <button
-                            type="button"
-                            onClick={() => handleCopyPubkey(monke.scriptPubkey, monke.id)}
-                            className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-amber-400 border border-transparent hover:border-white/10 transition-colors"
-                            title="Copy Script PubKey"
+                            onClick={() => onOpenInGif(monke.id)}
+                            title={t.actionMakeGif}
+                            className="p-1.5 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500 hover:text-slate-950 transition-colors"
                           >
-                            {isCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                            <Sparkles className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => onOpenInSanta(monke.id)}
+                            title={t.actionSanta}
+                            className="p-1.5 rounded-lg bg-rose-500/20 text-rose-300 hover:bg-rose-500 hover:text-white transition-colors"
+                          >
+                            <Gift className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
@@ -441,60 +448,63 @@ export const MonkesExplorer: React.FC<MonkesExplorerProps> = ({
       )}
 
       {/* Pagination Footer */}
-      {!loading && filteredAndSortedMonkes.length > 0 && (
-        <div className="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-xs shadow-lg">
-          <div className="text-slate-400">
-            Page <span className="text-white font-bold">{currentPage}</span> of{' '}
-            <span className="text-white font-bold">{totalPages}</span>
-          </div>
-
+      {totalPages > 1 && (
+        <div className="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-xs shadow-xl">
+          
           <div className="flex items-center gap-2">
             <button
               onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage <= 1}
-              className="flex items-center gap-1 px-3 py-2 rounded-xl bg-slate-900/90 border border-white/10 text-slate-300 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/5 transition-all font-sans text-xs font-semibold"
+              disabled={currentPage === 1}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-900 border border-white/10 hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed text-slate-300"
             >
               <ChevronLeft className="w-4 h-4" />
-              <span>Previous</span>
+              <span>{t.prevPage}</span>
             </button>
 
-            <form onSubmit={handleJumpSubmit} className="flex items-center gap-1.5">
-              <input
-                type="number"
-                min={1}
-                max={totalPages}
-                placeholder="Go to..."
-                value={jumpPageInput}
-                onChange={(e) => setJumpPageInput(e.target.value)}
-                className="w-16 px-2.5 py-2 rounded-xl bg-slate-900 border border-white/10 text-center text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500/60"
-              />
-              <button
-                type="submit"
-                className="px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold transition-all"
-              >
-                Go
-              </button>
-            </form>
+            <span className="text-slate-400">
+              Page <strong className="text-white">{currentPage}</strong> of <strong className="text-white">{totalPages}</strong>
+            </span>
 
             <button
               onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage >= totalPages}
-              className="flex items-center gap-1 px-3 py-2 rounded-xl bg-slate-900/90 border border-white/10 text-slate-300 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/5 transition-all font-sans text-xs font-semibold"
+              disabled={currentPage === totalPages}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-900 border border-white/10 hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed text-slate-300"
             >
-              <span>Next</span>
+              <span>{t.nextPage}</span>
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
+
+          {/* Jump to Page */}
+          <form onSubmit={handleJumpSubmit} className="flex items-center gap-2">
+            <span className="text-slate-400">{t.jumpTo}</span>
+            <input
+              type="number"
+              min={1}
+              max={totalPages}
+              value={jumpPageInput}
+              onChange={(e) => setJumpPageInput(e.target.value)}
+              placeholder={`${currentPage}`}
+              className="w-16 px-2 py-1 rounded-lg bg-slate-900 border border-white/10 text-center text-white focus:outline-none focus:border-amber-500"
+            />
+            <button
+              type="submit"
+              className="px-3 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold hover:bg-amber-400 transition-colors"
+            >
+              Go
+            </button>
+          </form>
+
         </div>
       )}
 
-      {/* Monke Detail Modal */}
+      {/* Detail Modal */}
       <MonkeDetailModal
-        monke={selectedMonke}
-        onClose={() => setSelectedMonke(null)}
+        monke={activeModalMonke}
+        onClose={() => setActiveModalMonke(null)}
         onOpenInGif={onOpenInGif}
         onOpenInSanta={onOpenInSanta}
-        onCopyPubkey={(key) => handleCopyPubkey(key, selectedMonke?.id || 0)}
+        onCopyPubkey={(text) => activeModalMonke && handleCopyPubkey(text, activeModalMonke.id)}
       />
 
     </div>

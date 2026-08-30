@@ -3,15 +3,13 @@ import { Sparkles, Download, Shuffle, RefreshCw, Gift, Palette } from 'lucide-re
 import { clsx } from 'clsx';
 import type { Monke } from '../../types';
 import { BODY_COLORS, PRESET_COLORS } from '../../utils/constants';
+import { useLanguage } from '../../utils/i18n';
 
 interface GifStudioProps {
   initialMonkeId?: number;
   monkes: Monke[];
   onToast: (title: string, desc?: string, type?: 'success' | 'info' | 'error') => void;
 }
-
-const FRAME_COUNT = 36;
-const BASE_FRAME_DELAY = 1000 / 30; // 33.33ms per frame at 1x speed
 
 function easeInOutQuad(t: number): number {
   return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
@@ -121,6 +119,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
   monkes,
   onToast,
 }) => {
+  const { t } = useLanguage();
   const [idInput, setIdInput] = useState(String(initialMonkeId));
   const [currentId, setCurrentId] = useState(initialMonkeId);
   const [mode, setMode] = useState<'normal' | 'santa'>('normal');
@@ -173,11 +172,11 @@ export const GifStudio: React.FC<GifStudioProps> = ({
 
   // Load preview for given ID and mode
   const loadPreview = useCallback(async (monkeId: number, m: 'normal' | 'santa') => {
-    setStatusText(`正在加载 #${monkeId} 图片资源...`);
+    setStatusText(`Loading #${monkeId}...`);
     const urls = getImageUrls(monkeId, m);
     setImages(urls);
     setCurrentId(monkeId);
-  }, [monkes]);
+  }, []);
 
   // Initial load
   useEffect(() => {
@@ -203,7 +202,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
         if (animationRef.current) cancelAnimationFrame(animationRef.current);
         progressRef.current = 0;
         lastTimeRef.current = 0;
-        setStatusText(`预览已准备就绪 (#${currentId})`);
+        setStatusText(`Ready (#${currentId})`);
         animate();
       }
     };
@@ -211,14 +210,14 @@ export const GifStudio: React.FC<GifStudioProps> = ({
     const upperImg = new Image();
     upperImg.crossOrigin = 'anonymous';
     upperImg.onload = onImageLoad;
-    upperImg.onerror = () => setStatusText(`无法加载上半身图片: #${currentId}`);
+    upperImg.onerror = () => setStatusText(`Error loading upper #${currentId}`);
     upperImg.src = images.upper;
     upperImgRef.current = upperImg;
 
     const lowerImg = new Image();
     lowerImg.crossOrigin = 'anonymous';
     lowerImg.onload = onImageLoad;
-    lowerImg.onerror = () => setStatusText(`无法加载下半身图片: #${currentId}`);
+    lowerImg.onerror = () => setStatusText(`Error loading lower #${currentId}`);
     lowerImg.src = images.lower;
     lowerImgRef.current = lowerImg;
 
@@ -267,7 +266,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
     if (!isNaN(val) && val >= 1 && val <= 10000) {
       loadPreview(val, mode);
     } else {
-      onToast('输入错误', '请输入 1 - 10,000 之间的有效 ID', 'error');
+      onToast('Error', 'Please enter a valid ID (1 - 10000)', 'error');
     }
   };
 
@@ -316,10 +315,8 @@ export const GifStudio: React.FC<GifStudioProps> = ({
       });
 
       // ⭐️ MATHEMATICALLY PERFECT SPEED SYNCHRONIZATION:
-      // Live web preview duration for 1 cycle = (1000 / 30) * 36 / speed = 1200 / speed (ms)
-      // For GIF standards, delay should be >= 20ms to prevent platform clamping
       const cycleDurationMs = 1200 / speed;
-      const maxPossibleFrames = Math.floor(cycleDurationMs / 20); // max frames with delay >= 20ms
+      const maxPossibleFrames = Math.floor(cycleDurationMs / 20);
       const numFrames = Math.max(12, Math.min(36, maxPossibleFrames));
       const frameDelay = Math.max(20, Math.round(cycleDurationMs / numFrames));
 
@@ -357,7 +354,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
         document.body.removeChild(link);
         setTimeout(() => URL.revokeObjectURL(url), 100);
 
-        onToast('GIF 生成成功！', `已导出 ${resolution}px • ${speed.toFixed(1)}x 动图`, 'success');
+        onToast(t.gifSuccess, `${t.gifSuccessDesc} (${resolution}px • ${speed.toFixed(1)}x)`, 'success');
         setProgress(0);
         setIsGenerating(false);
       });
@@ -365,7 +362,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
       gif.render();
     } catch (err: any) {
       console.error('GIF export error:', err);
-      onToast('生成失败', err.message || '请重试', 'error');
+      onToast('Export failed', err.message || 'Please retry', 'error');
       setProgress(0);
       setIsGenerating(false);
     }
@@ -378,13 +375,13 @@ export const GifStudio: React.FC<GifStudioProps> = ({
       <div className="text-center space-y-1.5">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-mono font-semibold">
           <Sparkles className="w-3.5 h-3.5" />
-          <span>NODEMONKES 36-FRAME GENUINE GIF STUDIO</span>
+          <span>{t.gifBadge}</span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-          Nodemonkes GIF Generator
+          {t.gifTitle}
         </h1>
         <p className="text-slate-400 text-sm max-w-xl mx-auto font-sans">
-          支持 0.1x ~ 5.0x 无极变速调节与 100px ~ 1200px 多档高清像素分辨率，保存速度与网页 100% 毫秒级同步。
+          {t.gifSub}
         </p>
       </div>
 
@@ -416,14 +413,14 @@ export const GifStudio: React.FC<GifStudioProps> = ({
               type="text"
               value={idInput}
               onChange={(e) => setIdInput(e.target.value)}
-              placeholder="输入 ID (1-10000)..."
+              placeholder={t.gifSearchPlaceholder}
               className="flex-1 px-4 py-2 rounded-xl bg-slate-900/90 border border-white/10 text-xs font-mono text-white focus:outline-none focus:border-amber-500"
             />
             <button
               type="submit"
               className="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs hover:bg-amber-400 transition-all"
             >
-              确定
+              {t.gifConfirm}
             </button>
             <button
               type="button"
@@ -431,7 +428,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
               className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 text-xs flex items-center gap-1 font-mono transition-all"
             >
               <Shuffle className="w-3.5 h-3.5 text-amber-400" />
-              <span>随机</span>
+              <span>{t.gifRandom}</span>
             </button>
           </form>
 
@@ -446,7 +443,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
           {/* 1. Mode Switcher */}
           <div className="space-y-2">
             <span className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider block">
-              1. 模式选择 (Mode)
+              {t.gifModeTitle}
             </span>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -460,7 +457,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
                 )}
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Classic 普通版</span>
+                <span>{t.gifModeClassic}</span>
               </button>
 
               <button
@@ -474,7 +471,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
                 )}
               >
                 <Gift className="w-3.5 h-3.5 text-rose-400" />
-                <span>Santa 圣诞帽版</span>
+                <span>{t.gifModeSanta}</span>
               </button>
             </div>
           </div>
@@ -482,7 +479,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
           {/* 2. Background Controls */}
           <div className="space-y-2 pt-3 border-t border-white/5">
             <span className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider block">
-              2. 背景底色设置
+              {t.gifBgTitle}
             </span>
             <div className="grid grid-cols-3 gap-2">
               <button
@@ -498,7 +495,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
                 <div className="w-4 h-4 rounded border border-dashed border-slate-500 flex items-center justify-center text-[9px]">
                   ⛶
                 </div>
-                <span>无背景 (透明)</span>
+                <span>{t.gifBgNone}</span>
               </button>
 
               <button
@@ -515,7 +512,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
                   className="w-4 h-4 rounded-full border border-white/20 shadow-sm"
                   style={{ backgroundColor: getAutoBackground(currentId) || '#FFFFFF' }}
                 />
-                <span>自动背景色</span>
+                <span>{t.gifBgAuto}</span>
               </button>
 
               <div className="relative">
@@ -530,7 +527,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
                   )}
                 >
                   <Palette className="w-4 h-4 text-purple-400" />
-                  <span>自选颜色</span>
+                  <span>{t.gifBgCustom}</span>
                   <input
                     type="color"
                     value={customColor}
@@ -571,7 +568,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
           {/* 3. Speed Control (0.1x - 5.0x Stepless Slider + Presets) */}
           <div className="space-y-2 pt-3 border-t border-white/5">
             <div className="flex items-center justify-between text-xs font-mono">
-              <span className="text-slate-300 font-bold uppercase">3. 动画播放速度 (0.1x ~ 5.0x 无极变速)</span>
+              <span className="text-slate-300 font-bold uppercase">{t.gifSpeedTitle}</span>
               <span className="text-amber-400 font-bold text-sm">{speed.toFixed(1)}x</span>
             </div>
             
@@ -587,11 +584,11 @@ export const GifStudio: React.FC<GifStudioProps> = ({
 
             <div className="grid grid-cols-5 gap-1.5 pt-1">
               {[
-                { label: '0.5x 慢速', val: 0.5 },
-                { label: '1.0x 原速', val: 1.0 },
-                { label: '2.0x 快速', val: 2.0 },
-                { label: '3.5x 极速', val: 3.5 },
-                { label: '5.0x 狂暴', val: 5.0 },
+                { label: t.gifSpeedSlow, val: 0.5 },
+                { label: t.gifSpeedNormal, val: 1.0 },
+                { label: t.gifSpeedFast, val: 2.0 },
+                { label: t.gifSpeedUltra, val: 3.5 },
+                { label: t.gifSpeedExtreme, val: 5.0 },
               ].map((s) => (
                 <button
                   key={s.val}
@@ -613,7 +610,7 @@ export const GifStudio: React.FC<GifStudioProps> = ({
           {/* 4. Resolution Control (100px - 1200px Slider + Presets) */}
           <div className="space-y-2 pt-3 border-t border-white/5">
             <div className="flex items-center justify-between text-xs font-mono">
-              <span className="text-slate-300 font-bold uppercase">4. 分辨率尺寸 (100px ~ 1200px)</span>
+              <span className="text-slate-300 font-bold uppercase">{t.gifResTitle}</span>
               <span className="text-white font-bold text-sm">{resolution} × {resolution} px</span>
             </div>
 
@@ -631,9 +628,9 @@ export const GifStudio: React.FC<GifStudioProps> = ({
               {[
                 { label: '200px', val: 200 },
                 { label: '400px', val: 400 },
-                { label: '600px 默认', val: 600 },
-                { label: '800px 高清', val: 800 },
-                { label: '1200px 超清', val: 1200 },
+                { label: '600px', val: 600 },
+                { label: '800px', val: 800 },
+                { label: '1200px', val: 1200 },
               ].map((r) => (
                 <button
                   key={r.val}
@@ -668,12 +665,12 @@ export const GifStudio: React.FC<GifStudioProps> = ({
               {isGenerating ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />
-                  <span>正在导出 GIF... {progress}%</span>
+                  <span>{t.gifSavingBtn} {progress}%</span>
                 </>
               ) : (
                 <>
                   <Download className="w-4 h-4" />
-                  <span>导出 GIF 动图 ({resolution}px • {speed.toFixed(1)}x 同步)</span>
+                  <span>{t.gifSaveBtn} ({resolution}px • {speed.toFixed(1)}x)</span>
                 </>
               )}
             </button>

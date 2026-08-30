@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 export type Language = 'zh' | 'en';
 
@@ -22,6 +22,7 @@ export interface Translations {
   explorerTitle: string;
   explorerSub: string;
   searchPlaceholder: string;
+  clearSearch: string;
   allBodies: string;
   sortBy: string;
   sortRank: string;
@@ -44,6 +45,7 @@ export interface Translations {
   noResults: string;
   prevPage: string;
   nextPage: string;
+  jumpTo: string;
 
   // Detail Modal
   modalRank: string;
@@ -109,15 +111,19 @@ export interface Translations {
   santaBadge: string;
   santaTitle: string;
   santaSub: string;
-  santaTabSingle: string;
-  santaTabCompare: string;
-  santaOriginalLabel: string;
-  santaMergedLabel: string;
-  santaDownloadBtn: string;
-  santaDownloadingBtn: string;
+  santaEdition: string;
   santaRandomBtn: string;
   santaSearchPlaceholder: string;
-  santaConfirm: string;
+  santaDownloadBtn: string;
+  santaBgTitle: string;
+  santaBgNone: string;
+  santaBgAuto: string;
+  santaBgCustom: string;
+  santaResTitle: string;
+  santaResStd: string;
+  santaResHd: string;
+  santaRes4k: string;
+  santaCrossGif: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -131,7 +137,7 @@ export const translations: Record<Language, Translations> = {
     langSwitch: 'EN',
 
     // Footer
-    footerDesc: 'NodeMonkes 官方生态综合门户',
+    footerDesc: 'NodeMonkes 综合生态门户',
     footerSatflow: 'SatFlow 交易市场',
     footerOrdnet: 'Ord.net 交易市场',
     footerRights: '100% 纯前端离线合成渲染 • 2026',
@@ -140,7 +146,8 @@ export const translations: Record<Language, Translations> = {
     explorerBadge: '10,000 铭文全量探索器',
     explorerTitle: 'NodeMonkes 稀有度与属性浏览器',
     explorerSub: '实时毫秒级检索 10,000 只 NodeMonkes 稀有度排行、Inscription 铭文属性与色彩分析。',
-    searchPlaceholder: '搜索 ID、Inscription 编号或属性 (如 Gold, Beak)...',
+    searchPlaceholder: '搜索 ID 或 Inscription 编号...',
+    clearSearch: '清空',
     allBodies: '全部身体类型',
     sortBy: '排序方式',
     sortRank: '按稀有度 (Rank)',
@@ -163,10 +170,11 @@ export const translations: Record<Language, Translations> = {
     noResults: '未找到匹配的 NodeMonke',
     prevPage: '上一页',
     nextPage: '下一页',
+    jumpTo: '跳转至:',
 
     // Detail Modal
     modalRank: '稀有度排名',
-    modalInscription: 'Inscription 铭文',
+    modalInscription: 'INSCRIPTION 铭文',
     modalOwner: '持有人地址 (ScriptPubKey)',
     modalTraits: '属性特征 (Traits & Rarity)',
     modalColorPalette: '主色调提取 (Color Palette)',
@@ -177,16 +185,16 @@ export const translations: Record<Language, Translations> = {
 
     // GIF Studio
     gifBadge: 'NODEMONKES 36 帧正版 GIF 工坊',
-    gifTitle: 'NodeMonkes 点头动图生成器',
-    gifSub: '100% 沿用原版点活动画算法与生成引擎，支持 0.1x ~ 5.0x 变速与多档高清分辨率。',
+    gifTitle: 'NodeMonkes GIF Generator',
+    gifSub: '支持 0.1x ~ 5.0x 无极变速调节与 100px ~ 1200px 多档高清像素分辨率，保存速度与网页 100% 毫秒级同步。',
     gifModeTitle: '1. 模式选择 (Mode)',
-    gifModeClassic: 'Classic 普通经典版',
-    gifModeSanta: 'Santa 圣诞节日版',
+    gifModeClassic: 'Classic 普通版',
+    gifModeSanta: 'Santa 圣诞帽版',
     gifBgTitle: '2. 背景底色设置',
-    gifBgNone: '无背景 (白色)',
+    gifBgNone: '无背景 (透明)',
     gifBgAuto: '自动背景色',
     gifBgCustom: '自选颜色',
-    gifSpeedTitle: '3. 动画播放速度 (0.1x ~ 5.0x)',
+    gifSpeedTitle: '3. 动画播放速度 (0.1x ~ 5.0x 无极变速)',
     gifSpeedSlow: '0.5x 慢速',
     gifSpeedNormal: '1.0x 原速',
     gifSpeedFast: '2.0x 快速',
@@ -196,7 +204,7 @@ export const translations: Record<Language, Translations> = {
     gifSearchPlaceholder: '输入 ID (1-10000)...',
     gifConfirm: '确定',
     gifRandom: '随机',
-    gifSaveBtn: '保存 GIF 动图',
+    gifSaveBtn: '导出 GIF 动图',
     gifSavingBtn: '正在导出 GIF...',
     gifSuccess: 'GIF 生成成功！',
     gifSuccessDesc: '动图已下载至本地',
@@ -215,28 +223,32 @@ export const translations: Record<Language, Translations> = {
     diyBgAuto: '自动背景',
     diyBgCustom: '自选颜色',
     diySeriesTitle: '系列切换 (Series)',
-    diyCatBody: '身体 (Body)',
-    diyCatEarring: '耳环 (Earring)',
-    diyCatEyes: '眼睛 (Eyes)',
-    diyCatHead: '头部 (Head)',
+    diyCatBody: '身体',
+    diyCatEarring: '耳环',
+    diyCatEyes: '眼睛',
+    diyCatHead: '头部',
     diyNotSupported: '此系列不支持该组件',
     diyLoadingComponents: '正在加载组件...',
     diySuccess: '头像保存成功！',
     diySuccessDesc: '已下载高清无损 PNG',
 
     // Santa Studio
-    santaBadge: 'NODEMONKES SANTA EDITION',
-    santaTitle: 'NodeMonkes 圣诞节日工坊',
-    santaSub: '10,000 只经典 NodeMonkes 圣诞主题图层融合，支持单图预览、前后对比与高清无损 PNG 下载。',
-    santaTabSingle: '圣诞版单图',
-    santaTabCompare: '原版 VS 圣诞版对比',
-    santaOriginalLabel: 'ORIGINAL 原版',
-    santaMergedLabel: 'SANTA 圣诞版',
-    santaDownloadBtn: '下载圣诞高清原图 (1440px)',
-    santaDownloadingBtn: '正在下载...',
-    santaRandomBtn: '随机抽取',
+    santaBadge: 'NODEMONKES 圣诞限定版',
+    santaTitle: '10,000 圣诞帽 NodeMonkes',
+    santaSub: '节日专属像素级圣诞帽融合，支持自定义背景底色与高清节日头像下载。',
+    santaEdition: '圣诞特别版',
+    santaRandomBtn: '随机',
     santaSearchPlaceholder: '输入 ID (1-10000)...',
-    santaConfirm: '确定',
+    santaDownloadBtn: '下载',
+    santaBgTitle: '1. 背景底色设置',
+    santaBgNone: '透明背景',
+    santaBgAuto: '自动毛色',
+    santaBgCustom: '节日调色盘',
+    santaResTitle: '2. 导出尺寸',
+    santaResStd: '标准 (280px)',
+    santaResHd: '高清头像 (560px)',
+    santaRes4k: '超清 4K (1120px)',
+    santaCrossGif: '在 GIF 工坊中制作此猴子动图',
   },
   en: {
     // Brand & Navbar
@@ -257,14 +269,15 @@ export const translations: Record<Language, Translations> = {
     explorerBadge: '10,000 INSCRIPTIONS EXPLORER',
     explorerTitle: 'NodeMonkes Rarity & Traits Explorer',
     explorerSub: 'Instant search across 10,000 NodeMonkes for rarity rankings, inscription traits, and color analysis.',
-    searchPlaceholder: 'Search ID, Inscription number, or traits (e.g. Gold, Beak)...',
+    searchPlaceholder: 'Search by ID or Inscription #...',
+    clearSearch: 'Clear',
     allBodies: 'All Body Types',
     sortBy: 'Sort By',
-    sortRank: 'Rarity Rank',
-    sortId: 'Monke ID',
+    sortRank: 'Sort by Rank',
+    sortId: 'Sort by ID',
     orderAsc: 'Ascending (Low to High)',
     orderDesc: 'Descending (High to Low)',
-    totalFound: 'Total Monkes',
+    totalFound: 'Total Found',
     perPage: 'Per Page',
     viewGrid: 'Grid View',
     viewTable: 'Table View',
@@ -280,13 +293,14 @@ export const translations: Record<Language, Translations> = {
     noResults: 'No NodeMonkes match your criteria',
     prevPage: 'Previous',
     nextPage: 'Next',
+    jumpTo: 'Jump to:',
 
     // Detail Modal
     modalRank: 'Rarity Rank',
-    modalInscription: 'Inscription Number',
+    modalInscription: 'INSCRIPTION',
     modalOwner: 'Owner ScriptPubKey',
-    modalTraits: 'Traits & Rarity Percentages',
-    modalColorPalette: 'Dominant Color Palette',
+    modalTraits: 'Traits & Rarity Breakdown',
+    modalColorPalette: 'Extracted Palette',
     modalCopySuccess: 'Copied to clipboard',
     modalOpenSatflow: 'Trade on SatFlow',
     modalOpenOrdnet: 'Trade on Ord.net',
@@ -294,13 +308,13 @@ export const translations: Record<Language, Translations> = {
 
     // GIF Studio
     gifBadge: 'NODEMONKES 36-FRAME GENUINE GIF STUDIO',
-    gifTitle: 'NodeMonkes GIF Generator',
-    gifSub: '100% authentic nodding animation engine, supporting 0.1x ~ 5.0x speed and multi-tier HD resolutions.',
+    gifTitle: 'Nodemonkes GIF Generator',
+    gifSub: 'Authentic nodding animation engine, supporting 0.1x ~ 5.0x speed and multi-tier HD resolutions.',
     gifModeTitle: '1. Select Mode',
     gifModeClassic: 'Classic Edition',
-    gifModeSanta: 'Santa Festive Edition',
+    gifModeSanta: 'Santa Edition',
     gifBgTitle: '2. Background Setting',
-    gifBgNone: 'No Background (White)',
+    gifBgNone: 'Transparent',
     gifBgAuto: 'Auto Body Color',
     gifBgCustom: 'Custom Color',
     gifSpeedTitle: '3. Animation Speed (0.1x ~ 5.0x)',
@@ -313,7 +327,7 @@ export const translations: Record<Language, Translations> = {
     gifSearchPlaceholder: 'Enter ID (1-10000)...',
     gifConfirm: 'Go',
     gifRandom: 'Random',
-    gifSaveBtn: 'Save Animated GIF',
+    gifSaveBtn: 'Export GIF',
     gifSavingBtn: 'Exporting GIF...',
     gifSuccess: 'GIF Generated Successfully!',
     gifSuccessDesc: 'Downloaded to your device',
@@ -342,18 +356,22 @@ export const translations: Record<Language, Translations> = {
     diySuccessDesc: 'Lossless HD PNG downloaded',
 
     // Santa Studio
-    santaBadge: 'NODEMONKES SANTA EDITION',
-    santaTitle: 'NodeMonkes Santa Edition Studio',
-    santaSub: '10,000 festive Santa-hat merged NodeMonkes with split comparison and lossless 1440px PNG download.',
-    santaTabSingle: 'Santa Monke View',
-    santaTabCompare: 'Original vs Santa Comparison',
-    santaOriginalLabel: 'ORIGINAL CLASSIC',
-    santaMergedLabel: 'SANTA EDITION',
-    santaDownloadBtn: 'Download HD Santa Monke (1440px)',
-    santaDownloadingBtn: 'Downloading...',
-    santaRandomBtn: 'Random Monke',
-    santaSearchPlaceholder: 'Enter ID (1-10000)...',
-    santaConfirm: 'Go',
+    santaBadge: 'SANTA MONKES LIMITED EDITION',
+    santaTitle: '10,000 Santa Hat NodeMonkes',
+    santaSub: 'Festive holiday edition with pixel-perfect Santa hats. Customize background colors and download high-resolution holiday avatars.',
+    santaEdition: 'SANTA EDITION',
+    santaRandomBtn: 'Random',
+    santaSearchPlaceholder: 'Monke ID (1-10000)',
+    santaDownloadBtn: 'Download',
+    santaBgTitle: '1. Background Styling',
+    santaBgNone: 'Transparent',
+    santaBgAuto: 'Auto Fur Color',
+    santaBgCustom: 'Holiday Palette',
+    santaResTitle: '2. Export Dimensions',
+    santaResStd: 'Standard (280px)',
+    santaResHd: 'HD Avatar (560px)',
+    santaRes4k: 'Ultra 4K (1120px)',
+    santaCrossGif: 'Animate this Monke in GIF Studio',
   },
 };
 
@@ -374,7 +392,6 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('nm_lang');
       if (saved === 'zh' || saved === 'en') return saved;
-      // Default to Chinese as per requested primary audience
       return 'zh';
     }
     return 'zh';
