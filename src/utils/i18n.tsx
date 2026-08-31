@@ -9,10 +9,12 @@ export interface Translations {
   tabGif: string;
   tabDiy: string;
   tabSanta: string;
+  tabPoster: string;
   badge10k: string;
   badgeStudio: string;
   badgeCreator: string;
   badgeSpecial: string;
+  badgePoster: string;
   langSwitchTitle: string;
   langSwitchBtn: string;
 
@@ -29,6 +31,24 @@ export interface Translations {
   searchPlaceholder: string;
   clearSearch: string;
   allBodies: string;
+  allHeads: string;
+  allEyes: string;
+  allEarrings: string;
+  filterBtn: string;
+  filterBody: string;
+  filterHead: string;
+  filterEyes: string;
+  filterEarring: string;
+  resetFilters: string;
+  hallOfFame: string;
+  hallOfFameAll: string;
+  theatreMode: string;
+  screensaverActive: string;
+  screensaverPaused: string;
+  screensaverPause: string;
+  screensaverPlay: string;
+  screensaverExit: string;
+  screensaverHint: string;
   sortBy: string;
   sortRank: string;
   sortId: string;
@@ -67,6 +87,7 @@ export interface Translations {
   modalColorPalette: string;
   modalMakeGif: string;
   modalSanta: string;
+  modalMakePoster: string;
   modalTraits: string;
   modalOwner: string;
   modalCopyKey: string;
@@ -148,11 +169,74 @@ export interface Translations {
   santaDownloadSuccess: string;
   santaDownloadSuccessDesc: string;
 
+  // Poster Studio
+  posterBadge: string;
+  posterTitle: string;
+  posterSub: string;
+  posterLayoutTitle: string;
+  posterSingle: string;
+  posterDuo: string;
+  posterSquad: string;
+  posterBanner: string;
+  posterWallpaper: string;
+  posterSquare: string;
+  posterCinema: string;
+  posterHeadline: string;
+  posterSubheadline: string;
+  posterThemeTitle: string;
+  posterThemeCyber: string;
+  posterThemeBtc: string;
+  posterThemeDark: string;
+  posterThemeEmerald: string;
+  posterThemeMinimal: string;
+  posterMonkeIds: string;
+  posterAddMonke: string;
+  posterDeleteMonke: string;
+  posterDuplicateMonke: string;
+  posterBringFront: string;
+  posterSendBack: string;
+  posterMoveUp: string;
+  posterMoveDown: string;
+  posterFlipH: string;
+  posterRotate: string;
+  posterSize: string;
+  posterTemplates: string;
+  posterTemplateSquad: string;
+  posterTemplateDuo: string;
+  posterTemplatePyramid: string;
+  posterTemplateSolo: string;
+  posterTemplateScatter: string;
+  posterUploadBg: string;
+  posterRemoveBg: string;
+  posterBgColor: string;
+  posterTextProps: string;
+  posterTextFontSize: string;
+  posterTextColor: string;
+  posterLayerList: string;
+  posterSelectAll: string;
+  posterDeselectAll: string;
+  posterMultiSelected: string;
+  posterBatchFlip: string;
+  posterBatchDelete: string;
+  posterExportBtn: string;
+  posterExporting: string;
+  posterSuccess: string;
+  posterSuccessDesc: string;
+
+  // Theatre Mode
+  theatreClose: string;
+  theatrePrev: string;
+  theatreNext: string;
+  theatreAutoPlay: string;
+  theatrePause: string;
+
   // Toast Messages
   toastGifLoaded: string;
   toastGifLoadedDesc: string;
   toastSantaLoaded: string;
   toastSantaLoadedDesc: string;
+  toastPosterLoaded: string;
+  toastPosterLoadedDesc: string;
   toastCopied: string;
   toastCopiedDesc: string;
   toastNetworkWarning: string;
@@ -167,10 +251,12 @@ export const translations: Record<Language, Translations> = {
     tabGif: 'GIF 动图',
     tabDiy: 'DIY 工坊',
     tabSanta: '圣诞版',
+    tabPoster: '海报工坊',
     badge10k: '1万',
     badgeStudio: '工坊',
     badgeCreator: '创作',
     badgeSpecial: '限定',
+    badgePoster: '排版',
     langSwitchTitle: '切换为英文 (Switch to English)',
     langSwitchBtn: 'EN',
 
@@ -186,7 +272,25 @@ export const translations: Record<Language, Translations> = {
     explorerSub: '实时毫秒级检索 10,000 只 NodeMonkes 稀有度排行、Inscription 铭文属性与色彩分析。',
     searchPlaceholder: '搜索 ID 或 Inscription 编号...',
     clearSearch: '清空',
-    allBodies: '全部身体类型',
+    allBodies: '全部身体',
+    allHeads: '全部头部',
+    allEyes: '全部眼睛',
+    allEarrings: '全部耳环',
+    filterBtn: '筛选',
+    filterBody: '身体 (Body)',
+    filterHead: '头部 (Head)',
+    filterEyes: '眼睛 (Eyes)',
+    filterEarring: '耳环 (Earring)',
+    resetFilters: '重置所有筛选',
+    hallOfFame: '👑 神兽榜 (Top 100)',
+    hallOfFameAll: '全部图库',
+    theatreMode: '📺 启动屏保 (全屏)',
+    screensaverActive: '自动屏保中',
+    screensaverPaused: '已暂停',
+    screensaverPause: '暂停屏保',
+    screensaverPlay: '启动屏保',
+    screensaverExit: '退出 (ESC)',
+    screensaverHint: '💡 提示：按 ESC 退出屏保 • F11 切换全屏 • 空格键 暂停/播放 • ← / → 切猴',
     sortBy: '排序方式',
     sortRank: '按稀有度排序',
     sortId: '按编号排序',
@@ -225,6 +329,7 @@ export const translations: Record<Language, Translations> = {
     modalColorPalette: '提取主色调',
     modalMakeGif: '生成 GIF 动图',
     modalSanta: '进入圣诞版查看',
+    modalMakePoster: '生成海报',
     modalTraits: '属性与稀有度明细',
     modalOwner: '持有人地址 (链上凭证)',
     modalCopyKey: '复制完整地址',
@@ -306,11 +411,74 @@ export const translations: Record<Language, Translations> = {
     santaDownloadSuccess: '下载成功！',
     santaDownloadSuccessDesc: '已保存圣诞版高清 PNG',
 
+    // Poster Studio
+    posterBadge: 'NODEMONKES 极光海报工坊',
+    posterTitle: 'NodeMonkes 铭文海报与壁纸工坊',
+    posterSub: '自选多只猴子、自定义主副文案与背景极光，一键生成 Twitter Banner、手机壁纸与战队海报。',
+    posterLayoutTitle: '1. 画幅尺寸与版式',
+    posterSingle: '单猴特写 (1:1)',
+    posterDuo: '双猴对决 (16:9)',
+    posterSquad: '五猴战队 (16:9)',
+    posterBanner: 'Twitter Banner (3:1)',
+    posterWallpaper: '手机壁纸 (9:16)',
+    posterSquare: '方形画报 (1:1)',
+    posterCinema: '电影宽幅 (16:9)',
+    posterHeadline: '主标题 Slogan',
+    posterSubheadline: '副标题 / 署名',
+    posterThemeTitle: '2. 氛围背景极光',
+    posterThemeCyber: '赛博极光 (Cyber)',
+    posterThemeBtc: '比特币橙金 (Gold)',
+    posterThemeDark: '深空曜黑 (Obsidian)',
+    posterThemeEmerald: '矩阵祖母绿 (Matrix)',
+    posterThemeMinimal: '极简灰白 (Editorial)',
+    posterMonkeIds: '猴子编号 (用逗号分隔)',
+    posterAddMonke: '+ 添加猴子',
+    posterDeleteMonke: '删除图层',
+    posterDuplicateMonke: '复制图层',
+    posterBringFront: '置于顶层',
+    posterSendBack: '置于底层',
+    posterMoveUp: '上移一层',
+    posterMoveDown: '下移一层',
+    posterFlipH: '水平翻转',
+    posterRotate: '旋转角度',
+    posterSize: '尺寸缩放',
+    posterTemplates: '排版模板',
+    posterTemplateSquad: '五猴横排',
+    posterTemplateDuo: '双猴对决',
+    posterTemplatePyramid: '金字塔阵',
+    posterTemplateSolo: '单猴特写',
+    posterTemplateScatter: '自由散落',
+    posterUploadBg: '📁 上传自定义背景图',
+    posterRemoveBg: '清除自定义背景',
+    posterBgColor: '自定义背景底色',
+    posterTextProps: '文案排版与样式',
+    posterTextFontSize: '文字大小',
+    posterTextColor: '文字颜色',
+    posterLayerList: '图层列表 (点击精准选中)',
+    posterSelectAll: '☑️ 全选猴子',
+    posterDeselectAll: '取消全选',
+    posterMultiSelected: '已框选 {n} 只猴子',
+    posterBatchFlip: '↔️ 批量翻转',
+    posterBatchDelete: '🗑️ 批量删除',
+    posterExportBtn: '导出高清海报 PNG',
+    posterExporting: '正在渲染海报...',
+    posterSuccess: '海报导出成功！',
+    posterSuccessDesc: '高清海报已保存至本地',
+
+    // Theatre Mode
+    theatreClose: '退出漫游 (ESC)',
+    theatrePrev: '上一只 (←)',
+    theatreNext: '下一只 (→)',
+    theatreAutoPlay: '自动播放',
+    theatrePause: '暂停',
+
     // Toast Messages
     toastGifLoaded: '已载入动图工坊',
     toastGifLoadedDesc: '猴子已准备就绪',
     toastSantaLoaded: '已载入圣诞版',
     toastSantaLoadedDesc: '猴子节日视图已就绪',
+    toastPosterLoaded: '已载入海报工坊',
+    toastPosterLoadedDesc: '猴子海报已就绪',
     toastCopied: '复制成功',
     toastCopiedDesc: '已复制到剪贴板',
     toastNetworkWarning: '网络提示',
@@ -323,10 +491,12 @@ export const translations: Record<Language, Translations> = {
     tabGif: 'Make GIF',
     tabDiy: 'DIY Studio',
     tabSanta: 'Santa Monkes',
+    tabPoster: 'Poster Studio',
     badge10k: '10K',
     badgeStudio: 'Studio',
     badgeCreator: 'Creator',
     badgeSpecial: 'Special',
+    badgePoster: 'Banner',
     langSwitchTitle: 'Switch to Chinese (切换为中文)',
     langSwitchBtn: '中文',
 
@@ -342,7 +512,25 @@ export const translations: Record<Language, Translations> = {
     explorerSub: 'Instant search across 10,000 NodeMonkes for rarity rankings, inscription traits, and color analysis.',
     searchPlaceholder: 'Search by ID or Inscription #...',
     clearSearch: 'Clear',
-    allBodies: 'All Body Types',
+    allBodies: 'All Bodies',
+    allHeads: 'All Heads',
+    allEyes: 'All Eyes',
+    allEarrings: 'All Earrings',
+    filterBtn: 'Filters',
+    filterBody: 'Body',
+    filterHead: 'Head',
+    filterEyes: 'Eyes',
+    filterEarring: 'Earring',
+    resetFilters: 'Reset All Filters',
+    hallOfFame: '👑 Hall of Fame (Top 100)',
+    hallOfFameAll: 'All Monkes',
+    theatreMode: '📺 Screensaver (Fullscreen)',
+    screensaverActive: 'Screensaver Active',
+    screensaverPaused: 'Paused',
+    screensaverPause: 'Pause',
+    screensaverPlay: 'Play',
+    screensaverExit: 'Exit (ESC)',
+    screensaverHint: '💡 Hint: Press ESC to exit • F11 to toggle fullscreen • Space to pause/play • ← / → to navigate',
     sortBy: 'Sort By',
     sortRank: 'Sort by Rank',
     sortId: 'Sort by ID',
@@ -381,6 +569,7 @@ export const translations: Record<Language, Translations> = {
     modalColorPalette: 'Extracted Palette',
     modalMakeGif: 'Make Animated GIF',
     modalSanta: 'View in Santa Edition',
+    modalMakePoster: 'Create Poster',
     modalTraits: 'Traits & Rarity Breakdown',
     modalOwner: 'Owner ScriptPubKey (On-Chain Proof)',
     modalCopyKey: 'Copy Full Key',
@@ -448,35 +637,98 @@ export const translations: Record<Language, Translations> = {
     santaSub: 'Festive holiday edition with pixel-perfect Santa hats. Customize background colors and download high-resolution holiday avatars.',
     santaEdition: 'SANTA EDITION',
     santaRandomBtn: 'Random',
-    santaSearchPlaceholder: 'Monke ID (1-10000)',
-    santaDownloadBtn: 'Download Festive Avatar',
-    santaBgTitle: '1. Background Styling',
+    santaSearchPlaceholder: 'Enter ID (1-10000)...',
+    santaDownloadBtn: 'Download Holiday Avatar',
+    santaBgTitle: '1. Background Color',
     santaBgNone: 'Transparent',
     santaBgAuto: 'Auto Background',
     santaBgCustom: 'Holiday Palette',
-    santaResTitle: '2. Export Dimensions',
+    santaResTitle: '2. Output Dimensions',
     santaResStd: 'Standard (280px)',
     santaResHd: 'HD Avatar (560px)',
-    santaRes4k: 'Ultra 4K (1120px)',
+    santaRes4k: '4K Ultra (1120px)',
     santaCrossGif: 'Animate this Monke in GIF Studio',
-    santaDownloadSuccess: 'Downloaded!',
-    santaDownloadSuccessDesc: 'Saved Santa NodeMonke PNG',
+    santaDownloadSuccess: 'Download Complete!',
+    santaDownloadSuccessDesc: 'HD PNG saved to your device',
+
+    // Poster Studio
+    posterBadge: 'NODEMONKES AURA POSTER STUDIO',
+    posterTitle: 'NodeMonkes Poster & Banner Studio',
+    posterSub: 'Combine multiple Monkes, custom slogans, and ambient auras to create Twitter Banners, Wallpapers, and Squad Posters.',
+    posterLayoutTitle: '1. Format & Layout',
+    posterSingle: 'Single Focus (1:1)',
+    posterDuo: 'Duo Versus (16:9)',
+    posterSquad: '5-Monke Squad (16:9)',
+    posterBanner: 'Twitter Banner (3:1)',
+    posterWallpaper: 'Phone Wallpaper (9:16)',
+    posterSquare: 'Square (1:1)',
+    posterCinema: 'Cinema (16:9)',
+    posterHeadline: 'Headline Slogan',
+    posterSubheadline: 'Subheadline / Author',
+    posterThemeTitle: '2. Ambient Aura Theme',
+    posterThemeCyber: 'Cyber Neon',
+    posterThemeBtc: 'Bitcoin Gold',
+    posterThemeDark: 'Deep Space',
+    posterThemeEmerald: 'Emerald Matrix',
+    posterThemeMinimal: 'Editorial Minimal',
+    posterMonkeIds: 'Monke IDs (comma-separated)',
+    posterAddMonke: '+ Add Monke',
+    posterDeleteMonke: 'Delete Layer',
+    posterDuplicateMonke: 'Duplicate Layer',
+    posterBringFront: 'Bring to Front',
+    posterSendBack: 'Send to Back',
+    posterMoveUp: 'Move Up',
+    posterMoveDown: 'Move Down',
+    posterFlipH: 'Flip Horizontal',
+    posterRotate: 'Rotation',
+    posterSize: 'Scale Size',
+    posterTemplates: 'Presets',
+    posterTemplateSquad: '5-Squad Row',
+    posterTemplateDuo: 'Duo Battle',
+    posterTemplatePyramid: 'Pyramid',
+    posterTemplateSolo: 'Solo Hero',
+    posterTemplateScatter: 'Scattered Art',
+    posterUploadBg: '📁 Upload Custom Background',
+    posterRemoveBg: 'Clear Custom Background',
+    posterBgColor: 'Custom Background Color',
+    posterTextProps: 'Text & Typography',
+    posterTextFontSize: 'Font Size',
+    posterTextColor: 'Text Color',
+    posterLayerList: 'Layers List (Click to Select)',
+    posterSelectAll: '☑️ Select All',
+    posterDeselectAll: 'Deselect All',
+    posterMultiSelected: '{n} Monkes Selected',
+    posterBatchFlip: '↔️ Flip All',
+    posterBatchDelete: '🗑️ Delete Selected',
+    posterExportBtn: 'Export HD Poster PNG',
+    posterExporting: 'Rendering Poster...',
+    posterSuccess: 'Poster Exported Successfully!',
+    posterSuccessDesc: 'High-resolution PNG saved to your device',
+
+    // Theatre Mode
+    theatreClose: 'Exit Theatre (ESC)',
+    theatrePrev: 'Previous (←)',
+    theatreNext: 'Next (→)',
+    theatreAutoPlay: 'Autoplay',
+    theatrePause: 'Pause',
 
     // Toast Messages
     toastGifLoaded: 'Loaded in GIF Studio',
-    toastGifLoadedDesc: 'Monke ready to animate',
-    toastSantaLoaded: 'Loaded in Santa Edition',
-    toastSantaLoadedDesc: 'Monke festive view ready',
-    toastCopied: 'Copied to clipboard',
-    toastCopiedDesc: 'Script PubKey copied',
-    toastNetworkWarning: 'Network Warning',
-    toastNetworkWarningDesc: 'Could not load live metadata, please check connection',
+    toastGifLoadedDesc: 'Monke animation ready',
+    toastSantaLoaded: 'Loaded in Santa Studio',
+    toastSantaLoadedDesc: 'Holiday Monke ready',
+    toastPosterLoaded: 'Loaded in Poster Studio',
+    toastPosterLoadedDesc: 'Poster scene ready',
+    toastCopied: 'Copied to Clipboard',
+    toastCopiedDesc: 'Successfully copied',
+    toastNetworkWarning: 'Network Notice',
+    toastNetworkWarningDesc: 'Unable to reach live data. Check your connection.',
   },
 };
 
 interface LanguageContextType {
   lang: Language;
-  setLang: (lang: Language) => void;
+  setLang: (l: Language) => void;
   t: Translations;
 }
 
@@ -487,26 +739,19 @@ const LanguageContext = createContext<LanguageContextType>({
 });
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [lang, setLangState] = useState<Language>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('nm_lang');
-      if (saved === 'zh' || saved === 'en') return saved;
-      return 'zh';
-    }
+  const [lang, setLang] = useState<Language>(() => {
+    const saved = localStorage.getItem('nodemonkes_lang') as Language;
+    if (saved === 'zh' || saved === 'en') return saved;
     return 'zh';
   });
 
-  const setLang = (newLang: Language) => {
-    setLangState(newLang);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('nm_lang', newLang);
-    }
+  const handleSetLang = (newLang: Language) => {
+    setLang(newLang);
+    localStorage.setItem('nodemonkes_lang', newLang);
   };
 
-  const t = translations[lang];
-
   return (
-    <LanguageContext.Provider value={{ lang, setLang, t }}>
+    <LanguageContext.Provider value={{ lang, setLang: handleSetLang, t: translations[lang] }}>
       {children}
     </LanguageContext.Provider>
   );

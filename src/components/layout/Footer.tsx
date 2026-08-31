@@ -12,7 +12,7 @@ export const Footer: React.FC = () => {
         <div className="flex items-center gap-2">
           <span className="font-extrabold text-white tracking-tight">NODEMONKES</span>
           <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold">
-            SUITE
+            LAB
           </span>
           <span>•</span>
           <span>{t.footerDesc}</span>
