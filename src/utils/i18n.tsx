@@ -229,6 +229,47 @@ export interface Translations {
   theatreNext: string;
   theatreAutoPlay: string;
   theatrePause: string;
+  theatreFxTitle: string;
+  theatreFxRandom: string;
+  theatreFxZoom: string;
+  theatreFxSlide: string;
+  theatreFxFlip3d: string;
+  theatreFxFlip3dX: string;
+  theatreFxDrop: string;
+  theatreFxLaunch: string;
+  theatreFxGlitch: string;
+  theatreFxSpin: string;
+  theatreFxCube: string;
+  theatreFxPulse: string;
+  theatreFxSwing: string;
+  theatreFxMatrix: string;
+  theatreFxFade: string;
+  theatreSpeedTitle: string;
+  theatreBgTitle: string;
+  theatreBgVoid: string;
+  theatreBgBtc: string;
+  theatreBgCyber: string;
+  theatreBgEmerald: string;
+  theatreBgStarfield: string;
+  theatreBgSunset: string;
+  theatreBgRetroGrid: string;
+  theatreBgFlame: string;
+  theatreBgUpload: string;
+  theatreBgCustom: string;
+  theatreBgDim: string;
+  theatreOrderTitle: string;
+  theatreOrderForward: string;
+  theatreOrderReverse: string;
+  theatreOrderShuffle: string;
+  theatreCatTitle: string;
+  theatreCatAll: string;
+  theatreCatTop100: string;
+  theatreCatAlien: string;
+  theatreCatGold: string;
+  theatreCatCrown: string;
+  theatreCatAsics9: string;
+  theatreCatDeathbot: string;
+  theatreCatHoodie: string;
 
   // Toast Messages
   toastGifLoaded: string;
@@ -471,6 +512,47 @@ export const translations: Record<Language, Translations> = {
     theatreNext: '下一只 (→)',
     theatreAutoPlay: '自动播放',
     theatrePause: '暂停',
+    theatreFxTitle: '进场动效',
+    theatreFxRandom: '🎲 随机轮播',
+    theatreFxZoom: '🚀 时空跃进',
+    theatreFxSlide: '↔️ 电影平移',
+    theatreFxFlip3d: '🔄 水平3D翻转',
+    theatreFxFlip3dX: '🔃 垂直翻滚',
+    theatreFxDrop: '☄️ 弹性坠落',
+    theatreFxLaunch: '🔥 冲天发射',
+    theatreFxGlitch: '⚡ 赛博故障',
+    theatreFxSpin: '🌀 漩涡引力',
+    theatreFxCube: '💎 3D立方体',
+    theatreFxPulse: '💓 能量心跳',
+    theatreFxSwing: '🔔 钟摆秋千',
+    theatreFxMatrix: '👁️ 矩阵扫描',
+    theatreFxFade: '💫 极简呼吸',
+    theatreSpeedTitle: '轮播速度',
+    theatreBgTitle: '背景氛围',
+    theatreBgVoid: '🌌 深空曜黑',
+    theatreBgBtc: '🟠 比特币橙金',
+    theatreBgCyber: '🟣 赛博霓虹',
+    theatreBgEmerald: '🟢 矩阵祖母绿',
+    theatreBgStarfield: '✨ 浩瀚星空',
+    theatreBgSunset: '🌅 暮光日落',
+    theatreBgRetroGrid: '🕹️ 极光网格',
+    theatreBgFlame: '🔥 熔岩烈焰',
+    theatreBgUpload: '📁 上传自定义背景',
+    theatreBgCustom: '🖼️ 自定义壁纸',
+    theatreBgDim: '背景压暗',
+    theatreOrderTitle: '播放顺序',
+    theatreOrderForward: '➡️ 正序',
+    theatreOrderReverse: '⬅️ 倒序',
+    theatreOrderShuffle: '🔀 随机',
+    theatreCatTitle: '播放种类',
+    theatreCatAll: '🌐 全部 10,000',
+    theatreCatTop100: '👑 神兽榜 Top 100',
+    theatreCatAlien: '👽 纯种外星人',
+    theatreCatGold: '🥇 纯金至尊',
+    theatreCatCrown: '👑 皇冠家族',
+    theatreCatAsics9: '⚡ 矿机神兽',
+    theatreCatDeathbot: '🤖 死亡机器人',
+    theatreCatHoodie: '🧥 连帽卫衣',
 
     // Toast Messages
     toastGifLoaded: '已载入动图工坊',
@@ -711,6 +793,47 @@ export const translations: Record<Language, Translations> = {
     theatreNext: 'Next (→)',
     theatreAutoPlay: 'Autoplay',
     theatrePause: 'Pause',
+    theatreFxTitle: 'Transitions',
+    theatreFxRandom: '🎲 Random FX',
+    theatreFxZoom: '🚀 Warp Zoom',
+    theatreFxSlide: '↔️ Cinema Slide',
+    theatreFxFlip3d: '🔄 3D Flip (Y)',
+    theatreFxFlip3dX: '🔃 3D Flip (X)',
+    theatreFxDrop: '☄️ Orbit Drop',
+    theatreFxLaunch: '🔥 Rocket Launch',
+    theatreFxGlitch: '⚡ Cyber Glitch',
+    theatreFxSpin: '🌀 Vortex Spin',
+    theatreFxCube: '💎 3D Cube',
+    theatreFxPulse: '💓 Energy Pulse',
+    theatreFxSwing: '🔔 Pendulum Swing',
+    theatreFxMatrix: '👁️ Matrix Scan',
+    theatreFxFade: '💫 Fade Breathe',
+    theatreSpeedTitle: 'Speed',
+    theatreBgTitle: 'Background',
+    theatreBgVoid: '🌌 Deep Void',
+    theatreBgBtc: '🟠 BTC Gold',
+    theatreBgCyber: '🟣 Cyber Neon',
+    theatreBgEmerald: '🟢 Matrix Green',
+    theatreBgStarfield: '✨ Starfield',
+    theatreBgSunset: '🌅 Twilight Sunset',
+    theatreBgRetroGrid: '🕹️ Synth Grid',
+    theatreBgFlame: '🔥 Magma Flame',
+    theatreBgUpload: '📁 Upload Custom BG',
+    theatreBgCustom: '🖼️ Custom Wallpaper',
+    theatreBgDim: 'Dimming',
+    theatreOrderTitle: 'Playback Order',
+    theatreOrderForward: '➡️ Forward',
+    theatreOrderReverse: '⬅️ Reverse',
+    theatreOrderShuffle: '🔀 Shuffle',
+    theatreCatTitle: 'Playlist Category',
+    theatreCatAll: '🌐 All 10,000',
+    theatreCatTop100: '👑 Top 100',
+    theatreCatAlien: '👽 Aliens',
+    theatreCatGold: '🥇 Gold Body',
+    theatreCatCrown: '👑 Crown',
+    theatreCatAsics9: '⚡ ASICS9',
+    theatreCatDeathbot: '🤖 Deathbot',
+    theatreCatHoodie: '🧥 Hoodie',
 
     // Toast Messages
     toastGifLoaded: 'Loaded in GIF Studio',
