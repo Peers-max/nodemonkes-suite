@@ -330,17 +330,19 @@ export const ArcadeStudio: React.FC<ArcadeStudioProps> = ({
     canvas.style.height = `${height}px`;
     ctx.scale(2, 2);
 
+    // Pre-create gradient for maximum render efficiency (zero per-frame allocations)
+    const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
+    bgGradient.addColorStop(0, '#07090E');
+    bgGradient.addColorStop(0.65, '#0E131F');
+    bgGradient.addColorStop(1, '#05070B');
+
     let localRunning = true;
 
     const loop = () => {
       if (!localRunning) return;
 
       // 1. Draw Background (Cyber Bitcoin Blockchain Deep Grid)
-      const grad = ctx.createLinearGradient(0, 0, 0, height);
-      grad.addColorStop(0, '#07090E');
-      grad.addColorStop(0.65, '#0E131F');
-      grad.addColorStop(1, '#05070B');
-      ctx.fillStyle = grad;
+      ctx.fillStyle = bgGradient;
       ctx.fillRect(0, 0, width, height);
 
       // Micro Starfield Matrix

@@ -63,13 +63,25 @@ const RESOLUTION_OPTIONS = [
   { label: '4096px (4K)', value: 4096 },
 ];
 
+const diyImgCache = new Map<string, HTMLImageElement>();
+
 function loadCanvasImage(url: string): Promise<HTMLImageElement> {
+  if (diyImgCache.has(url)) {
+    return Promise.resolve(diyImgCache.get(url)!);
+  }
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
+    img.onload = () => {
+      diyImgCache.set(url, img);
+      if ('decode' in img) {
+        img.decode().catch(() => {}).then(() => resolve(img));
+      } else {
+        resolve(img);
+      }
+    };
     img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
-    img.src = `${url}?t=${Date.now()}`;
+    img.src = url;
   });
 }
 
@@ -177,7 +189,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
           SERIES_COMPONENTS[series].forEach((category) => {
             const parts: TraitPart[] = Array.from(uniqueComponents[category]).map((value) => ({
               value,
-              url: `${BASE_URLS[series]}/${category.toLowerCase()}/${value}.png`,
+              url: `${BASE_URLS[series]}/${category.toLowerCase()}/${value}.png?v=2`,
             }));
 
             if (['Earring', 'Eyes'].includes(category) || (category === 'Head' && series === 'normal')) {
