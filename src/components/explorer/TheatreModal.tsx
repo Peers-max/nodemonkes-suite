@@ -15,11 +15,8 @@ import {
   Clock,
   Palette,
   Upload,
-  ArrowRight,
-  ArrowLeft,
-  Shuffle,
-  Filter,
-  Layers
+  Layers,
+  Filter
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import type { Monke } from '../../types';
@@ -279,7 +276,6 @@ export const TheatreModal: React.FC<TheatreModalProps> = ({
   // Handle Modal Open / Close Lifecycle
   useEffect(() => {
     if (isOpen) {
-      // Find index in activeMonkes
       const foundIdx = activeMonkes.findIndex((m) => m.id === (monkes[initialIndex]?.id || initialIndex));
       setCurrentIndex(foundIdx >= 0 ? foundIdx : 0);
       setIsPlaying(true);
@@ -854,7 +850,7 @@ export const TheatreModal: React.FC<TheatreModalProps> = ({
 
           </div>
 
-          {/* Right Action Controls with Dedicated Speed Selector */}
+          {/* Right Action Controls with Speed + Fullscreen */}
           <div className="flex items-center gap-2 bg-black/80 backdrop-blur-xl p-1.5 px-2.5 rounded-2xl border border-white/10 shadow-2xl flex-shrink-0">
             
             {/* Speed Selector Group */}

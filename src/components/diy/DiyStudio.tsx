@@ -1,5 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Paintbrush, Download, Shuffle, RefreshCw, Check } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { 
+  Paintbrush, 
+  Download, 
+  Shuffle, 
+  RefreshCw, 
+  Check, 
+  Palette,
+  Sparkles,
+  Ban
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { clsx } from 'clsx';
@@ -30,7 +39,6 @@ const BASE_URLS: Record<SeriesType, string> = {
 };
 
 const CATEGORIES: CategoryType[] = ['Body', 'Earring', 'Eyes', 'Head'];
-const SPECIAL_SERIES = ['Dog', 'Peer', 'Rabbit', 'Block'];
 
 const SERIES_COMPONENTS: Record<SeriesType, CategoryType[]> = {
   normal: ['Body', 'Earring', 'Eyes', 'Head'],
@@ -92,6 +100,23 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
     peer: { Body: [], Earring: [], Eyes: [], Head: [] },
   });
 
+  // Extract readable trait names
+  const traitNames = useMemo(() => {
+    const getTraitName = (url: string) => {
+      if (!url || url === 'none') return 'None';
+      const file = url.split('/').pop()?.replace('.png', '') || 'None';
+      return decodeURIComponent(file);
+    };
+
+    return {
+      Body: getTraitName(selectedParts.Body),
+      Earring: getTraitName(selectedParts.Earring),
+      Eyes: getTraitName(selectedParts.Eyes),
+      Head: getTraitName(selectedParts.Head),
+      Count: Object.values(selectedParts).filter((p) => p && p !== 'none').length,
+    };
+  }, [selectedParts]);
+
   const currentBgColor = useMemo(() => {
     if (bgMode === 'transparent') return 'transparent';
     if (bgMode === 'orange') return '#F97316';
@@ -134,9 +159,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
             CATEGORIES.forEach((category) => {
               const value = item.attributes[category];
               if (value && value !== 'None') {
-                if (!(category === 'Head' && SPECIAL_SERIES.includes(value))) {
-                  uniqueComponents[category].add(value);
-                }
+                uniqueComponents[category].add(value);
               }
             });
           }
@@ -253,43 +276,49 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
     setSelectedParts(newParts);
   };
 
+  // Render Full Composite Avatar onto a Canvas
+  const renderCompositeCanvas = async (size: number): Promise<HTMLCanvasElement> => {
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas context error');
+
+    ctx.imageSmoothingEnabled = false;
+
+    if (currentBgColor && currentBgColor !== 'transparent') {
+      ctx.fillStyle = currentBgColor;
+      ctx.fillRect(0, 0, size, size);
+    }
+
+    for (const category of CATEGORIES) {
+      const imgSrc = selectedParts[category];
+      if (imgSrc && imgSrc !== 'none') {
+        const img = await loadCanvasImage(imgSrc);
+        ctx.drawImage(img, 0, 0, size, size);
+      }
+    }
+
+    return canvas;
+  };
+
+  // Direct Save PNG
   const saveAvatar = async () => {
     setSaving(true);
     try {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Canvas not available');
-
-      const size = saveResolution;
-      canvas.width = size;
-      canvas.height = size;
-      ctx.imageSmoothingEnabled = false;
-
-      if (currentBgColor && currentBgColor !== 'transparent') {
-        ctx.fillStyle = currentBgColor;
-        ctx.fillRect(0, 0, size, size);
-      }
-
-      for (const category of CATEGORIES) {
-        const imgSrc = selectedParts[category];
-        if (imgSrc && imgSrc !== 'none') {
-          const img = await loadCanvasImage(imgSrc);
-          ctx.drawImage(img, 0, 0, size, size);
-        }
-      }
+      const canvas = await renderCompositeCanvas(saveResolution);
 
       canvas.toBlob((blob) => {
         if (!blob) throw new Error('Blob creation failed');
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `nodemonke_avatar_${activeSeries}_${size}px_${Date.now()}.png`;
+        link.download = `nodemonke_diy_${activeSeries}_${saveResolution}px_${Date.now()}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         setTimeout(() => URL.revokeObjectURL(url), 100);
 
-        // Confetti Celebration
         confetti({
           particleCount: 80,
           spread: 70,
@@ -297,7 +326,7 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
           colors: ['#10B981', '#34D399', '#F59E0B', '#6EE7B7'],
         });
 
-        onToast(t.diySuccess, `${t.diySuccessDesc} (${size} × ${size})`, 'success');
+        onToast(t.diySuccess, `${t.diySuccessDesc} (${saveResolution} × ${saveResolution})`, 'success');
         setSaving(false);
       }, 'image/png');
     } catch (err: any) {
@@ -319,32 +348,29 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6 pb-12">
       
-      {/* Title Header */}
-      <div className="text-center space-y-2 px-2">
-        <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-mono font-semibold shadow-sm">
-          <Paintbrush className="w-3.5 h-3.5" />
-          <span>{t.diyBadge}</span>
-        </div>
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight">
+      {/* Header Banner */}
+      <div className="text-center space-y-2">
+        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white font-sans">
           {t.diyTitle}
         </h1>
-        <p className="text-slate-400 text-xs sm:text-sm max-w-xl mx-auto font-sans">
+        <p className="text-sm text-slate-400 max-w-2xl mx-auto">
           {t.diySub}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      {/* Main Studio Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        {/* Left Side: 4-Layer DOM Preview & Action Buttons */}
+        {/* Left Column: Avatar Canvas, Actions, Resolution, BG Color, Series Switcher */}
         <div className="lg:col-span-5 space-y-4">
           <div className="glass-panel p-5 rounded-3xl border border-white/[0.08] shadow-2xl space-y-4">
             
-            {/* Preview Container */}
+            {/* 1. Live Composite Preview Canvas */}
             <div 
-              className="relative w-full aspect-square rounded-2xl border border-white/10 overflow-hidden shadow-inner flex items-center justify-center transition-colors"
               style={{ backgroundColor: currentBgColor }}
+              className="relative aspect-square w-full rounded-2xl overflow-hidden border border-white/10 shadow-inner flex items-center justify-center transition-colors duration-200"
             >
               {currentBgColor === 'transparent' && (
                 <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:12px_12px]" />
@@ -399,69 +425,68 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
               </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-2.5">
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  type="button"
-                  onClick={randomize}
-                  disabled={loading}
-                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 font-semibold text-xs transition-all shadow-md"
-                >
-                  <Shuffle className="w-4 h-4 text-emerald-400" />
-                  <span>{t.diyRandomBtn}</span>
-                </motion.button>
+            {/* 2. Action Buttons: Randomize & Save */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                type="button"
+                onClick={randomize}
+                disabled={loading}
+                className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 font-semibold text-xs transition-all shadow-md active:scale-95"
+              >
+                <Shuffle className="w-4 h-4 text-emerald-400" />
+                <span>{t.diyRandomBtn}</span>
+              </motion.button>
 
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  type="button"
-                  onClick={saveAvatar}
-                  disabled={loading || saving}
-                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-400 via-emerald-500 to-teal-500 hover:brightness-110 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/25 transition-all"
-                >
-                  {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                  <span>{saving ? t.diySavingBtn : `${t.diySaveBtn} (${saveResolution}px)`}</span>
-                </motion.button>
-              </div>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                type="button"
+                onClick={saveAvatar}
+                disabled={loading || saving}
+                className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-400 via-emerald-500 to-teal-500 hover:brightness-110 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/25 transition-all active:scale-95"
+              >
+                {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                <span>{saving ? t.diySavingBtn : `${t.diySaveBtn} (${saveResolution}px)`}</span>
+              </motion.button>
+            </div>
 
-              {/* Resolution Options Selector */}
-              <div className="flex flex-wrap items-center justify-between gap-1 p-1 bg-slate-950/60 rounded-2xl border border-white/5 text-[11px] font-mono shadow-inner">
-                <span className="text-slate-400 px-2 font-medium">{t.diyResTitle}</span>
-                <div className="flex items-center gap-1">
-                  {RESOLUTION_OPTIONS.map((r) => (
-                    <button
-                      key={r.value}
-                      type="button"
-                      onClick={() => setSaveResolution(r.value)}
-                      className={clsx(
-                        'px-2.5 py-1 rounded-xl transition-all font-semibold',
-                        saveResolution === r.value
-                          ? 'bg-emerald-500 text-slate-950 shadow-sm'
-                          : 'text-slate-400 hover:text-white'
-                      )}
-                    >
-                      {r.label}
-                    </button>
-                  ))}
-                </div>
+            {/* 3. Export Resolution Selector */}
+            <div className="flex flex-wrap items-center justify-between gap-1 p-1.5 bg-slate-950/60 rounded-2xl border border-white/5 text-[11px] font-mono shadow-inner">
+              <span className="text-slate-400 px-2 font-medium">{t.diyResTitle}</span>
+              <div className="flex items-center gap-1">
+                {RESOLUTION_OPTIONS.map((r) => (
+                  <button
+                    key={r.value}
+                    type="button"
+                    onClick={() => setSaveResolution(r.value)}
+                    className={clsx(
+                      'px-2.5 py-1 rounded-xl transition-all font-semibold',
+                      saveResolution === r.value
+                        ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    )}
+                  >
+                    {r.label}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Background Selector */}
-            <div className="space-y-2 pt-3 border-t border-white/[0.06]">
-              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block font-bold">
+            {/* 4. Background Color Selector */}
+            <div className="space-y-2 pt-2 border-t border-white/5">
+              <label className="text-xs font-mono font-semibold text-slate-400 uppercase tracking-wider block">
                 {t.diyBgTitle}
-              </span>
-              <div className="grid grid-cols-4 gap-1.5">
+              </label>
+
+              <div className="grid grid-cols-4 gap-2">
                 <button
                   type="button"
                   onClick={() => setBgMode('transparent')}
                   className={clsx(
-                    'py-2 px-1 rounded-xl text-xs font-medium border transition-all text-center',
+                    'py-2 px-1 rounded-2xl text-[11px] font-mono font-bold border transition-all text-center',
                     bgMode === 'transparent'
-                      ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 font-bold shadow-sm'
-                      : 'bg-slate-950/40 border-white/5 text-slate-400 hover:text-white'
+                      ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300'
+                      : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
                   )}
                 >
                   {t.diyBgNone}
@@ -471,10 +496,10 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
                   type="button"
                   onClick={() => setBgMode('orange')}
                   className={clsx(
-                    'py-2 px-1 rounded-xl text-xs font-medium border transition-all text-center',
+                    'py-2 px-1 rounded-2xl text-[11px] font-mono font-bold border transition-all text-center',
                     bgMode === 'orange'
-                      ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 font-bold shadow-sm'
-                      : 'bg-slate-950/40 border-white/5 text-slate-400 hover:text-white'
+                      ? 'bg-amber-500/20 border-amber-400 text-amber-300'
+                      : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
                   )}
                 >
                   {t.diyBgOrange}
@@ -484,80 +509,69 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
                   type="button"
                   onClick={() => setBgMode('auto')}
                   className={clsx(
-                    'py-2 px-1 rounded-xl text-xs font-medium border transition-all text-center',
+                    'py-2 px-1 rounded-2xl text-[11px] font-mono font-bold border transition-all text-center',
                     bgMode === 'auto'
-                      ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 font-bold shadow-sm'
-                      : 'bg-slate-950/40 border-white/5 text-slate-400 hover:text-white'
+                      ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300'
+                      : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
                   )}
                 >
                   {t.diyBgAuto}
                 </button>
 
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setBgMode('custom')}
-                    className={clsx(
-                      'w-full py-2 px-1 rounded-xl text-xs font-medium border transition-all text-center relative overflow-hidden flex items-center justify-center',
-                      bgMode === 'custom'
-                        ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 font-bold shadow-sm'
-                        : 'bg-slate-950/40 border-white/5 text-slate-400 hover:text-white'
-                    )}
-                  >
-                    <span>{t.diyBgCustom}</span>
-                    <input
-                      type="color"
-                      value={customColor}
-                      onChange={(e) => {
-                        setCustomColor(e.target.value);
-                        setBgMode('custom');
-                      }}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setBgMode('custom')}
+                  className={clsx(
+                    'py-2 px-1 rounded-2xl text-[11px] font-mono font-bold border transition-all text-center',
+                    bgMode === 'custom'
+                      ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300'
+                      : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-white'
+                  )}
+                >
+                  {t.diyBgCustom}
+                </button>
               </div>
 
               {bgMode === 'custom' && (
-                <div className="p-2.5 rounded-2xl bg-slate-950/60 border border-white/5 flex items-center gap-2 flex-wrap animate-in fade-in">
-                  {PRESET_COLORS.map((c) => (
-                    <button
-                      key={c.value}
-                      type="button"
-                      onClick={() => {
-                        setCustomColor(c.value);
-                        setBgMode('custom');
-                      }}
-                      title={c.name}
-                      className={clsx(
-                        'w-6 h-6 rounded-lg border transition-transform',
-                        customColor.toLowerCase() === c.value.toLowerCase()
-                          ? 'scale-110 ring-2 ring-emerald-400 border-white'
-                          : 'border-white/20 hover:scale-105'
-                      )}
-                      style={{ backgroundColor: c.value }}
-                    />
-                  ))}
+                <div className="flex items-center gap-2 pt-2">
+                  <input
+                    type="color"
+                    value={customColor}
+                    onChange={(e) => setCustomColor(e.target.value)}
+                    className="w-8 h-8 rounded-xl cursor-pointer border border-white/20 bg-transparent"
+                  />
+                  <div className="flex flex-wrap gap-1.5 flex-1">
+                    {PRESET_COLORS.map((c) => (
+                      <button
+                        key={c.value}
+                        type="button"
+                        onClick={() => setCustomColor(c.value)}
+                        style={{ backgroundColor: c.value }}
+                        title={c.name}
+                        className="w-6 h-6 rounded-lg border border-white/20 transition-transform hover:scale-110 active:scale-95"
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Series Buttons */}
-            <div className="space-y-2 pt-3 border-t border-white/[0.06]">
-              <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block font-bold">
+            {/* 5. Series Switcher Tabs */}
+            <div className="space-y-2 pt-2 border-t border-white/5">
+              <label className="text-xs font-mono font-semibold text-slate-400 uppercase tracking-wider block">
                 {t.diySeriesTitle}
-              </span>
-              <div className="grid grid-cols-5 gap-1.5">
+              </label>
+              <div className="flex flex-wrap gap-2">
                 {SERIES_BUTTONS.map((s) => (
                   <button
                     key={s.id}
                     type="button"
                     onClick={() => setActiveSeriesHandler(s.id)}
                     className={clsx(
-                      'py-2 rounded-xl text-xs font-mono font-semibold transition-all text-center border',
+                      'flex-1 min-w-[58px] py-2 px-2.5 rounded-2xl text-xs font-mono font-bold transition-all border shadow-sm text-center',
                       activeSeries === s.id
-                        ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-bold shadow-md shadow-emerald-500/20 scale-[1.02]'
-                        : 'bg-slate-950/40 border-white/5 text-slate-400 hover:text-white'
+                        ? 'bg-emerald-500/20 border-emerald-400/80 text-emerald-300 shadow-emerald-500/10'
+                        : 'bg-slate-900/60 border-white/5 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
                     )}
                   >
                     {lang === 'zh' ? s.zh : s.en}
@@ -569,105 +583,96 @@ export const DiyStudio: React.FC<DiyStudioProps> = ({ onToast }) => {
           </div>
         </div>
 
-        {/* Right Side: Category Tabs & Trait Parts Grid */}
-        <div className="lg:col-span-7 glass-panel p-5 rounded-3xl border border-white/[0.08] shadow-2xl flex flex-col min-h-[580px]">
-          
-          {/* Category Tabs with Fluid Indicator */}
-          <div className="relative flex items-center gap-1.5 p-1 bg-slate-950/70 rounded-2xl border border-white/10 mb-4 shadow-inner">
-            {CATEGORIES.map((cat) => {
-              const isSupported = SERIES_COMPONENTS[activeSeries].includes(cat);
-              const isActive = activeCategory === cat;
+        {/* Right Column: Trait Categories and Grid Selector */}
+        <div className="lg:col-span-7 space-y-4">
+          <div className="glass-panel p-6 rounded-3xl border border-white/[0.08] shadow-2xl min-h-[580px] flex flex-col gap-5">
+            
+            {/* Top Trait Category Tabs */}
+            <div className="flex flex-wrap gap-2 p-1.5 bg-slate-950/60 rounded-2xl border border-white/5">
+              {SERIES_COMPONENTS[activeSeries].map((cat) => {
+                const isActive = activeCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setActiveCategory(cat)}
+                    className={clsx(
+                      'flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all text-center',
+                      isActive
+                        ? 'bg-emerald-500 text-slate-950 shadow-md'
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    )}
+                  >
+                    {getCategoryLabel(cat)}
+                  </button>
+                );
+              })}
+              
+              {/* Show Disabled Head Tab if current series doesn't support Head (e.g. Rabbit, Dog, Block, Peer) */}
+              {!SERIES_COMPONENTS[activeSeries].includes('Head') && (
+                <div className="flex-1 py-2.5 px-3 rounded-xl text-xs font-medium text-slate-600 text-center select-none cursor-not-allowed">
+                  {lang === 'zh' ? '头部 (无)' : 'Head (N/A)'}
+                </div>
+              )}
+            </div>
 
-              return (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => isSupported && setActiveCategory(cat)}
-                  disabled={!isSupported}
-                  className={clsx(
-                    'relative flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors text-center select-none z-10',
-                    !isSupported && 'opacity-30 cursor-not-allowed text-slate-600',
-                    isActive ? 'text-slate-950 font-bold' : 'text-slate-400 hover:text-white'
-                  )}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="diyCategoryPill"
-                      transition={{ type: 'spring', stiffness: 450, damping: 35 }}
-                      className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-xl shadow-md"
-                    />
-                  )}
-                  <span className="relative z-10">{getCategoryLabel(cat)}</span>
-                  {!isSupported && <span className="relative z-10 text-[10px] ml-1 opacity-60">({lang === 'zh' ? '无' : 'N/A'})</span>}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Parts Grid */}
-          <div className="flex-1 overflow-y-auto max-h-[480px] pr-1">
-            {!SERIES_COMPONENTS[activeSeries].includes(activeCategory) ? (
-              <div className="flex items-center justify-center h-64 text-slate-500 text-sm font-mono">
-                {activeSeriesLabel} {t.diyNotSupported}
-              </div>
-            ) : currentParts.length === 0 ? (
-              <div className="flex items-center justify-center h-64 text-slate-500 text-sm font-mono">
-                {t.diyLoadingComponents}
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 p-1">
-                {currentParts.map((part) => {
-                  const isSelected = selectedParts[activeCategory] === part.url;
-                  const isNone = part.url === 'none';
+            {/* Trait Items Grid Picker with Label Below Each Icon */}
+            <div className="flex-1 flex flex-col gap-3">
+              <div className="grid grid-cols-4 sm:grid-cols-5 gap-3 max-h-[520px] overflow-y-auto pr-1 no-scrollbar">
+                {currentParts.map((item, idx) => {
+                  const isSelected = selectedParts[activeCategory] === item.url;
+                  const isNone = item.url === 'none';
 
                   return (
                     <motion.div
-                      key={part.value}
-                      whileHover={{ scale: 1.04, y: -2 }}
+                      key={`${item.value}-${idx}`}
+                      whileHover={{ scale: 1.04 }}
                       whileTap={{ scale: 0.96 }}
-                      onClick={() => selectPart(activeCategory, part.url)}
+                      onClick={() => selectPart(activeCategory, item.url)}
                       className={clsx(
-                        'aspect-square rounded-2xl p-2 cursor-pointer transition-all duration-200 flex flex-col items-center justify-between border group relative overflow-hidden',
+                        'relative aspect-square rounded-2xl border flex flex-col items-center justify-between p-2 cursor-pointer transition-all',
                         isSelected
-                          ? 'bg-emerald-950/60 border-emerald-400 ring-2 ring-emerald-500/50 shadow-lg shadow-emerald-500/20'
-                          : 'bg-slate-950/40 border-white/5 hover:border-emerald-500/40 hover:bg-slate-900/80'
+                          ? 'bg-emerald-500/15 border-emerald-400 shadow-md ring-2 ring-emerald-500/20'
+                          : 'bg-slate-900/60 border-white/5 hover:border-white/20 hover:bg-slate-800/60'
                       )}
                     >
-                      <div className="w-full h-full flex items-center justify-center overflow-hidden p-1">
+                      {/* Center Icon / Sprite */}
+                      <div className="w-full flex-1 flex items-center justify-center overflow-hidden">
                         {isNone ? (
-                          <div className="relative w-10 h-10 rounded-full border-2 border-dashed border-slate-500 flex items-center justify-center">
-                            <div className="w-8 h-0.5 bg-slate-500 transform rotate-45" />
+                          <div className="w-10 h-10 rounded-full border-2 border-dashed border-slate-600 flex items-center justify-center text-slate-500">
+                            <Ban className="w-5 h-5 stroke-[1.5]" />
                           </div>
                         ) : (
                           <img
-                            src={part.url}
-                            alt={part.value}
+                            src={item.url}
+                            alt={item.value}
+                            className="w-14 h-14 object-contain pixelated pointer-events-none"
                             loading="lazy"
-                            className="w-full h-full object-contain pixelated transform group-hover:scale-110 transition-transform duration-200"
                           />
                         )}
                       </div>
 
-                      <span className="text-[10px] text-center font-sans text-slate-300 truncate w-full px-1">
-                        {isNone ? (lang === 'zh' ? '无' : 'None') : part.value}
+                      {/* Bottom Trait Value Label */}
+                      <span className={clsx(
+                        'text-[10px] font-mono truncate max-w-full text-center mt-1 leading-tight',
+                        isSelected ? 'text-emerald-300 font-bold' : 'text-slate-400'
+                      )}>
+                        {isNone ? (lang === 'zh' ? '无' : 'None') : item.value}
                       </span>
 
+                      {/* Selected Top-Right Checkmark Badge */}
                       {isSelected && (
-                        <motion.span 
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center shadow"
-                        >
-                          <Check className="w-3 h-3 stroke-[3]" />
-                        </motion.span>
+                        <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-emerald-400 flex items-center justify-center text-slate-950 shadow-sm">
+                          <Check className="w-2.5 h-2.5 stroke-[3]" />
+                        </div>
                       )}
                     </motion.div>
                   );
                 })}
               </div>
-            )}
-          </div>
+            </div>
 
+          </div>
         </div>
 
       </div>
